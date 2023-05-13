@@ -1,4 +1,4 @@
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.transforms;
 
 /*-
  * #%L
@@ -21,6 +21,7 @@ package org.apache.beam.sdk.io.astra;
  */
 
 import com.datastax.driver.core.ConsistencyLevel;
+import org.apache.beam.sdk.io.astra.ConnectionManager;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.values.PCollection;
@@ -40,7 +41,7 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
     /**
      * Logger
      */
-    private static final Logger LOG = LoggerFactory.getLogger(AstraConnectionManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
 
     /**
      * Execute a CQL query
@@ -51,7 +52,7 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      */
     public AstraCqlQueryPTransform(String token, File secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
-        AstraConnectionManager
+        ConnectionManager
                 .getInstance()
                 .getSession(
                         ValueProvider.StaticValueProvider.of(token),
@@ -73,7 +74,7 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      */
     public AstraCqlQueryPTransform(String token, byte[] secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
-        AstraConnectionManager
+        ConnectionManager
                 .getInstance()
                 .getSession(
                         ValueProvider.StaticValueProvider.of(token),

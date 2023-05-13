@@ -1,4 +1,4 @@
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.options;
 
 /*-
  * #%L
@@ -21,26 +21,16 @@ package org.apache.beam.sdk.io.astra;
  */
 
 import org.apache.beam.sdk.options.Description;
-import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.Validation;
 
 /**
- * Specialization of PipelineOptions to work with Astra.
+ * Specialization of AstraDbOptions for Read Operations.
  */
-public interface AstraDbOptions extends PipelineOptions  {
+public interface AstraDbReadOptions extends AstraDbOptions {
 
-    @Description("Astra Token, depending on environment could be value or secret resource id")
+    @Description("Source Table")
     @Validation.Required
-    String getAstraToken();
-    void setAstraToken(String token);
+    String getTable();
+    void setTable(String table);
 
-    @Description("Location of secure connect bundle, depending on environment could be path or secret resource id")
-    @Validation.Required
-    String getSecureConnectBundle();
-    void setSecureConnectBundle(String path);
-
-    @Description("Keyspace in Cassandra, a Db can have multiple keyspace")
-    @Validation.Required
-    String getKeyspace();
-    void setKeyspace(String keyspace);
 }

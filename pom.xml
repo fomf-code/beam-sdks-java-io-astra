@@ -25,9 +25,8 @@
     <slf4j.version>2.0.7</slf4j.version>
     <logback.version>1.4.7</logback.version>
     <auto-value.version>1.10.1</auto-value.version>
-    <!-- Tests -->
-    <junit-platform.version>1.9.2</junit-platform.version>
-    <junit-jupiter.version>5.9.2</junit-jupiter.version>
+    <junit.version>4.13.2</junit.version>
+    <hamcrest.version>2.2</hamcrest.version>
     <!-- Maven -->
     <version.maven.plugin.compiler>3.11.0</version.maven.plugin.compiler>
     <version.maven.plugin.dependency>3.5.0</version.maven.plugin.dependency>
@@ -100,7 +99,13 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.2</version>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>${hamcrest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -115,13 +120,13 @@
         </exclusion>
       </exclusions>
     </dependency>
-
     <dependency>
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-runners-direct-java</artifactId>
       <version>${beam.version}</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 
   <build>

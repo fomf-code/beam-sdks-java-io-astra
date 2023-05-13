@@ -43,6 +43,8 @@ import org.apache.beam.sdk.annotations.Experimental;
 import org.apache.beam.sdk.annotations.Experimental.Kind;
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.coders.SerializableCoder;
+import org.apache.beam.sdk.io.astra.mapping.DefaultObjectMapperFactory;
+import org.apache.beam.sdk.io.astra.mapping.Mapper;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.*;
@@ -351,6 +353,8 @@ public class AstraIO {
      */
     private static class SplitFn<T> extends DoFn<Read<T>, Read<T>> {
 
+      public SplitFn() {}
+
       @ProcessElement
       public void process(@Element AstraIO.Read<T> read, OutputReceiver<Read<T>> outputReceiver) {
         Set<RingRange> ringRanges = getRingRanges(read);
@@ -360,14 +364,14 @@ public class AstraIO {
       }
 
       private static <T> Set<RingRange> getRingRanges(Read<T> read) {
-        try (Cluster cluster =
-            AstraConnectionManager.getInstance().getCluster(
+       Cluster cluster =
+            ConnectionManager.getInstance().getCluster(
                 read.token(),
                 read.consistencyLevel(),
                 read.connectTimeout(),
                 read.readTimeout(),
                 read.secureConnectBundle(),
-                read.secureConnectBundleData())) {
+                read.secureConnectBundleData());
 
             Integer splitCount;
             if (read.minNumberOfSplits() != null && read.minNumberOfSplits().get() != null) {
@@ -385,7 +389,7 @@ public class AstraIO {
             return splitGenerator.generateSplits(splitCount, tokens).stream()
                 .flatMap(List::stream)
                 .collect(Collectors.toSet());
-        }
+
       }
     }
 
@@ -702,7 +706,6 @@ public class AstraIO {
 
     @Teardown
     public void teardown() throws Exception {
-      writer.close();
       writer = null;
     }
   }
@@ -732,7 +735,6 @@ public class AstraIO {
 
     @Teardown
     public void teardown() throws Exception {
-      deleter.close();
       deleter = null;
     }
   }
@@ -761,9 +763,9 @@ public class AstraIO {
     private final String operationName;
 
     Mutator(Write<T> spec, BiFunction<Mapper<T>, T, Future<Void>> mutator, String operationName) {
-      this.cluster    = AstraConnectionManager.getInstance().getCluster(spec);
+      this.cluster    = ConnectionManager.getInstance().getCluster(spec);
       //this.session    = cluster.connect(spec.keyspace().get());
-      this.session    = AstraConnectionManager.getInstance().getSession(spec);
+      this.session    = ConnectionManager.getInstance().getSession(spec);
       this.mapperFactoryFn = spec.mapperFactoryFn();
       this.mutateFutures = new ArrayList<>();
       this.mutator = mutator;
@@ -797,15 +799,6 @@ public class AstraIO {
       if (this.mutateFutures.size() > 0) {
         // Waiting for the last in flight async queries to return before finishing the bundle.
         waitForFuturesToFinish();
-      }
-    }
-
-    void close() {
-      if (session != null) {
-        session.close();
-      }
-      if (cluster != null) {
-        cluster.close();
       }
     }
 

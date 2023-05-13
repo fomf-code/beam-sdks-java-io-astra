@@ -52,19 +52,20 @@ import java.util.Formatter;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Session and Cluster should be singletons for a destination (token, keyspace).
+ * Hold singletons for Astra connections.
+ *
+ * <p>Clusters: Token / Cloud Secure Bundle</p>
+ * <p>Sessions: Cluster / Keyspace</p>
  */
-public class AstraConnectionManager {
+public class ConnectionManager {
 
-  /**
-   * Logger
-   */
-  private static final Logger LOG = LoggerFactory.getLogger(AstraConnectionManager.class);
+  /** Logger. */
+  private static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
 
   /**
    * Singleton.
    */
-  private static AstraConnectionManager _instance = null;
+  private static ConnectionManager _instance = null;
 
   /**
    * Cache for clusters (token / cloud secure bundle).
@@ -84,35 +85,54 @@ public class AstraConnectionManager {
   /**
    * Singleton Pattern
    */
-  public static synchronized AstraConnectionManager getInstance() {
+  public static synchronized ConnectionManager getInstance() {
     if (_instance == null) {
-      _instance = new AstraConnectionManager();
-      try {
-        _instance.md = MessageDigest.getInstance("SHA-1");
-      } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-1 is not supported");
-      }
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        for (Session session : _instance.cacheSessions.values()) {
-         if (!session.isClosed()) {
-           LOG.info("Closing Cassandra Session.");
-           session.close();
-         }
-        }
-      }));
+      _instance = initialize();
+      gracefullyShutdownHook();
     }
     return _instance;
   }
 
   /**
-   * Retrieve an existing session.
+   * Initialize the singleton.
+   *
+   * @return
+   *   singleton instance
+   */
+  private static ConnectionManager initialize() {
+    ConnectionManager connManager = new ConnectionManager();
+    try {
+      connManager.md = MessageDigest.getInstance("SHA-1");
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-1 is not supported");
+    }
+    return connManager;
+  }
+
+  /**
+   * Define a hook to gracefully shutdown open sessions at shutdown.
+   */
+  private static void gracefullyShutdownHook() {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      for (Session session : _instance.cacheSessions.values()) {
+        if (!session.isClosed()) {
+          LOG.info("Closing Cassandra Session.");
+          session.close();
+        }
+      }
+    }));
+  }
+
+  /**
+   * Open or retrieve existing session for a given Write.
    *
    * @param write
-   *    read session
+   *    writer
    * @return
-   *    current session
+   *    cassandra session
    */
   public synchronized Session getSession(AstraIO.Write<?> write) {
+    if (write.keyspace() == null) throw new IllegalArgumentException("Keyspace is required.");
     return getSession(write.token(),
             ValueProvider.StaticValueProvider.of(ConsistencyLevel.LOCAL_QUORUM.name()),
             write.connectTimeout(),
@@ -123,14 +143,15 @@ public class AstraConnectionManager {
   }
 
   /**
-   * Retrieve an existing session.
+   * Open or retrieve existing session for a given reader.
    *
    * @param read
-   *    read session
+   *    reader
    * @return
-   *    current session
+   *    cassandra session
    */
   public synchronized Session getSession(Read<?> read) {
+    if (read.keyspace() == null) throw new IllegalArgumentException("Keyspace is required.");
     return getSession(read.token(),
             read.consistencyLevel(),
             read.connectTimeout(),
@@ -140,6 +161,18 @@ public class AstraConnectionManager {
             read.keyspace().get());
   }
 
+ /**
+   * Open a retrieve a session with all Astra Parameters
+   *
+   * @param token
+   *    token
+   * @param scbFile
+   *    secure connect bundle file
+   * @param scbStream
+   *    secure connect bundle stream
+   * @return
+   *    SHA1
+   */
   public synchronized Session getSession(
           ValueProvider<String> token,
           ValueProvider<String> consistencyLevel,
@@ -148,7 +181,7 @@ public class AstraConnectionManager {
           ValueProvider<File> scbFile,
           ValueProvider<byte[]> scbStream,
           String keyspace) {
-    Cluster cluster = getCluster(token, consistencyLevel, connectTimeout, readTimeout, scbFile, scbStream);
+    Cluster cluster    = getCluster(token, consistencyLevel, connectTimeout, readTimeout, scbFile, scbStream);
     String sessionSha1 = computeClusterSHA1(token.get(),scbFile,scbStream) + keyspace;
     if (!cacheSessions.containsKey(sessionSha1)) {
       LOG.info("Initializing Session.");
@@ -158,21 +191,14 @@ public class AstraConnectionManager {
   }
 
   public synchronized Cluster getCluster(AstraIO.Write<?> write) {
+    if (write.token() == null) throw new IllegalArgumentException("Token is required.");
+
     return getCluster(write.token(),
             ValueProvider.StaticValueProvider.of(ConsistencyLevel.LOCAL_QUORUM.name()),
             write.connectTimeout(),
             write.readTimeout(),
             write.secureConnectBundle(),
             write.secureConnectBundleData());
-  }
-
-  public synchronized Cluster getCluster(AstraIO.Read<?> read) {
-    return getCluster(read.token(),
-            read.consistencyLevel(),
-            read.connectTimeout(),
-            read.readTimeout(),
-            read.secureConnectBundle(),
-            read.secureConnectBundleData());
   }
 
   /**
@@ -208,8 +234,10 @@ public class AstraConnectionManager {
       Cluster.Builder builder = Cluster.builder();
       if (scbFile != null) {
         builder.withCloudSecureConnectBundle(scbFile.get());
-      } else if (scbStream != null) {
-        builder.withCloudSecureConnectBundle(new ByteArrayInputStream(scbStream.get()));
+      } else if (scbStream.get() != null) {
+        byte[] scbData = scbStream.get();
+        if (scbData == null) throw new IllegalArgumentException("Cloud Secure Bundle is Required");
+        builder.withCloudSecureConnectBundle(new ByteArrayInputStream(scbData));
       } else {
         throw new IllegalArgumentException("Cloud Secure Bundle is Required");
       }
@@ -220,13 +248,20 @@ public class AstraConnectionManager {
       SocketOptions socketOptions = new SocketOptions();
       builder.withSocketOptions(socketOptions);
       if (connectTimeout != null) {
-        socketOptions.setConnectTimeoutMillis(connectTimeout.get());
+        Integer cTimeout = connectTimeout.get();
+        if (cTimeout != null && cTimeout > 0) {
+          socketOptions.setConnectTimeoutMillis(cTimeout);
+        }
       }
       if (readTimeout != null) {
-        socketOptions.setReadTimeoutMillis(readTimeout.get());
+        Integer rTimeout = readTimeout.get();
+        if (rTimeout != null && rTimeout > 0) {
+          socketOptions.setReadTimeoutMillis(rTimeout);
+        }
+
       }
       cacheClusters.put(clusterSha1, builder.build());
-      LOG.info("Connection established in {} millis.", System.currentTimeMillis() - top);
+      LOG.info("Cluster created in {} millis.", System.currentTimeMillis() - top);
     }
     return cacheClusters.get(clusterSha1);
   }
@@ -245,12 +280,19 @@ public class AstraConnectionManager {
    */
   private String computeClusterSHA1(String token, ValueProvider<File> scbFile, ValueProvider<byte[]> scbStream) {
     String result = token + "_";
-    byte[] data;
+    byte[] data = null;
     if (scbFile != null) {
-      data = scbFile.get().getAbsolutePath().getBytes(StandardCharsets.UTF_8);
+      File file = scbFile.get();
+      if (file != null) {
+        data = file.getAbsolutePath().getBytes(StandardCharsets.UTF_8);
+      }
     } else if (scbStream != null) {
-      data = scbStream.get();
-    } else {
+      byte[] scbData = scbStream.get();
+      if (scbData != null) {
+        data = scbData;
+      }
+    }
+    if (data == null) {
       throw new IllegalArgumentException("Cloud Secure Bundle is Required");
     }
     Formatter formatter = new Formatter();

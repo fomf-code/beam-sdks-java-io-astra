@@ -48,23 +48,24 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.beam.sdk.io.astra.AstraIO.Read;
+import org.apache.beam.sdk.io.astra.mapping.Mapper;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
-  "nullness" // TODO(https://github.com/apache/beam/issues/20497)
-})
 class ReadFn<T> extends DoFn<Read<T>, T> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ReadFn.class);
 
+  public ReadFn() {
+    super();
+  }
+
   @ProcessElement
   public void processElement(@Element Read<T> read, OutputReceiver<T> receiver) {
     try {
-      Session session = AstraConnectionManager.getInstance().getSession(read);
+      Session session = ConnectionManager.getInstance().getSession(read);
       Mapper<T> mapper = read.mapperFactoryFn().apply(session);
       String partitionKey =
           session.getCluster().getMetadata().getKeyspace(read.keyspace().get())
@@ -73,7 +74,6 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
               .collect(Collectors.joining(","));
 
       String query = generateRangeQuery(read, partitionKey, read.ringRanges() != null);
-      LOG.info("READ QUERY:" + query);
       PreparedStatement preparedStatement = session.prepare(query);
       Set<RingRange> ringRanges =
           read.ringRanges() == null ? Collections.emptySet() : read.ringRanges().get();
@@ -159,12 +159,14 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
   }
 
   private static String buildInitialQuery(Read<?> spec, Boolean hasRingRange) {
-    return (spec.query() == null)
+    String query = null;
+    query = (spec.query() == null)
         ? String.format("SELECT * FROM %s.%s", spec.keyspace().get(), spec.table().get())
             + " WHERE "
         : spec.query().get()
             + (hasRingRange
                 ? spec.query().get().toUpperCase().contains("WHERE") ? " AND " : " WHERE "
                 : "");
+    return query;
   }
 }

@@ -6,6 +6,7 @@ import com.dtsx.astra.sdk.AstraDevopsApiClient;
 import com.dtsx.astra.sdk.db.AstraDbClient;
 import com.dtsx.astra.sdk.db.DatabaseClient;
 import com.dtsx.astra.sdk.db.domain.DatabaseCreationRequest;
+import com.dtsx.astra.sdk.db.domain.DatabaseStatusType;
 import com.dtsx.astra.sdk.utils.AstraRc;
 import com.dtsx.astra.sdk.utils.Utils;
 import org.junit.Assert;
@@ -80,7 +81,11 @@ public abstract class AbstractAstraDbTest {
         File secureConnectBundle = new File(secureConnectBundlePath);
         if (!new File(secureConnectBundlePath).exists()) {
             LOGGER.info("Downloading SCB  {} as not existing ", secureConnectBundlePath);
-            createDbAndProvideClient().downloadDefaultSecureConnectBundle(secureConnectBundlePath);
+            try {
+                createDbAndProvideClient().downloadDefaultSecureConnectBundle(secureConnectBundlePath);
+            } catch (InterruptedException e) {
+               throw new IllegalStateException(e);
+            }
         }
         return secureConnectBundle;
     }
@@ -96,7 +101,6 @@ public abstract class AbstractAstraDbTest {
             cluster = Cluster.builder()
                     .withCloudSecureConnectBundle(getSecureConnectBundleFile())
                     .withCredentials("token", getToken())
-
                     .build();
         }
         return cluster;
@@ -168,7 +172,7 @@ public abstract class AbstractAstraDbTest {
      * @return
      *      database client
      */
-    protected static DatabaseClient createDbAndProvideClient() {
+    protected static DatabaseClient createDbAndProvideClient() throws InterruptedException {
         if (dbClient == null) {
             if (!getDatabasesClient().findByName(TEST_DB_NAME).findAny().isPresent()) {
                 LOGGER.info("Create DB  {} as not existing ", TEST_DB_NAME);
@@ -181,6 +185,10 @@ public abstract class AbstractAstraDbTest {
             }
             dbClient = getApiDevopsClient().db().databaseByName(TEST_DB_NAME);
             Assert.assertTrue(dbClient.exist());
+        }
+        while(dbClient.get().getStatus() != DatabaseStatusType.ACTIVE) {
+            LOGGER.info("+ Waiting for the db to become ACTIVE ");
+            Thread.sleep(5000);
         }
         return dbClient;
     }

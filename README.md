@@ -20,9 +20,7 @@ To use this SDK, add the following dependency to your project:
 
 ### Usage
 
-To Write a PCollection to Astra, use the following code:
-
-- You need to define a Bean in respect of the `cassandra-driver-mapping` rules. Those are described in the [referential documentation](https://docs.datastax.com/en/developer/java-driver/3.11/manual/object_mapper/creating/). As an example we can leverage on the following table:
+- Define a Bean in respect of the `cassandra-driver-mapping` rules. Those are described in the [referential documentation](https://docs.datastax.com/en/developer/java-driver/3.11/manual/object_mapper/creating/). As an example we leverage this bean and this table:
 ```sql
 CREATE TABLE IF NOT EXISTS simpledata (
     id int,
@@ -31,7 +29,7 @@ CREATE TABLE IF NOT EXISTS simpledata (
 );  
 ```
 
-- The associated bean will be the class [`SimpleDataEntity`](#) 
+- Associated bean will be the class [`SimpleDataEntity`](#) 
 
 ```java
 @Table(name = "simpledata")
@@ -46,13 +44,16 @@ public class SimpleDataEntity implements Serializable {
 }
 ```
 
+
 - Create a Pipeline to read data From Astra
 ```java
 ```
 
+
 - Create a Pipeline to write data into Astra
 ```java
 
+```
 
 
 

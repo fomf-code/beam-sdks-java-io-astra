@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.mapping;
 
 /*-
  * #%L
@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.concurrent.Future;
 import org.apache.beam.sdk.annotations.Experimental;
 import org.apache.beam.sdk.annotations.Experimental.Kind;
+import org.apache.beam.sdk.io.astra.AstraIO;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 
 /**

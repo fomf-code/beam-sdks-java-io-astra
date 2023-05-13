@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.mapping;
 
 /*-
  * #%L
@@ -37,36 +37,41 @@ package org.apache.beam.sdk.io.astra;
  * #L%
  */
 
-import com.datastax.driver.core.Session;
-import com.datastax.driver.mapping.MappingManager;
-import org.apache.beam.sdk.transforms.SerializableFunction;
+import com.datastax.driver.core.ResultSet;
+import java.io.Serializable;
+import java.util.Iterator;
+import java.util.concurrent.Future;
 
 /**
- * Factory implementation that CassandraIO uses to initialize the Default Object Mapper for mapping
- * POJOs to CRUD events in Cassandra.
+ * Default Object mapper implementation that uses the <a
+ * href="https://docs.datastax.com/en/developer/java-driver/3.1/manual/object_mapper">Cassandra
+ * Object Mapper</a> for mapping POJOs to CRUD events in Cassandra.
  *
- * @see DefaultObjectMapper
+ * @see DefaultObjectMapperFactory
  */
 @SuppressWarnings({
-  "rawtypes", // TODO(https://github.com/apache/beam/issues/20447)
-  "nullness" // TODO(https://github.com/apache/beam/issues/20497)
+  "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
 })
-public
-class DefaultObjectMapperFactory<T> implements SerializableFunction<Session, Mapper> {
+class DefaultObjectMapper<T> implements Mapper<T>, Serializable {
 
-  private transient MappingManager mappingManager;
-  final Class<T> entity;
+  private final transient com.datastax.driver.mapping.Mapper<T> mapper;
 
-  public DefaultObjectMapperFactory(Class<T> entity) {
-    this.entity = entity;
+  DefaultObjectMapper(com.datastax.driver.mapping.Mapper mapper) {
+    this.mapper = mapper;
   }
 
   @Override
-  public Mapper apply(Session session) {
-    if (mappingManager == null) {
-      this.mappingManager = new MappingManager(session);
-    }
+  public Iterator<T> map(ResultSet resultSet) {
+    return mapper.map(resultSet).iterator();
+  }
 
-    return new DefaultObjectMapper<T>(mappingManager.mapper(entity));
+  @Override
+  public Future<Void> deleteAsync(T entity) {
+    return mapper.deleteAsync(entity);
+  }
+
+  @Override
+  public Future<Void> saveAsync(T entity) {
+    return mapper.saveAsync(entity);
   }
 }
