@@ -29,23 +29,67 @@ import org.apache.beam.sdk.options.Validation;
  */
 public interface AstraDbOptions extends PipelineOptions  {
 
+    /**
+     * Access Astra Token
+     * @return the Astra token
+     */
     @Description("Astra Token, depending on environment could be value or secret resource id")
     @Validation.Required
     String getAstraToken();
+
+    /**
+     * Update the Astratoken
+     *
+     * @param token
+     *      new value for AstraToken.
+     */
     void setAstraToken(String token);
 
+    /**
+     * Access Astra secure bundle
+     * @return the Astra secure bundle
+     */
     @Description("Location of secure connect bundle, depending on environment could be path or secret resource id")
     @Validation.Required
     String getAstraSecureConnectBundle();
+
+    /**
+     * Update the Astra secure bundle
+     *
+     * @param path
+     *      new value for Astra connection timeout
+     */
     void setAstraSecureConnectBundle(String path);
 
+    /**
+     * Access Astra Keyspace
+     * @return the Astra keyspace
+     */
     @Description("Keyspace in Cassandra, a Db can have multiple keyspace")
     @Validation.Required
     String getKeyspace();
+
+    /**
+     * Update the Astra keyspace
+     *
+     * @param keyspace
+     *      new value for Astra keyspace
+     */
     void setKeyspace(String keyspace);
 
+    /**
+     * Access Astra connection timeout
+     * @return the Astra connection timout
+     */
     @Description("Timeout for Connectivity in milliseconds")
     int getConnectTimeout();
+
+    /**
+     * Update the Astra connection timeout.
+     *
+     * @param connectTimeout
+     *      new value for Astra connection timeout
+     */
     void setConnectTimeout(int connectTimeout);
 
 }

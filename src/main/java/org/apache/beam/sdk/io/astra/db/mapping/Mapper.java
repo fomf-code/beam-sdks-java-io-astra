@@ -81,7 +81,10 @@ public interface Mapper<T> {
    * deleted in Cassandra. The return value should be a Future that completes when the delete action
    * is completed.
    *
-   * @param entity Entity to be deleted.
+   * @param entity
+   *    Entity to be deleted.
+   * @return
+   *    Future when complete.
    */
   Future<Void> deleteAsync(T entity);
 
@@ -90,7 +93,10 @@ public interface Mapper<T> {
    * saved or updated in Cassandra. The return value should be a future that completes when the save
    * action is completed.
    *
-   * @param entity Entity to be saved.
+   * @param entity
+   *    Entity to be saved.
+   * @return
+   *    Future when complete.
    */
   Future<Void> saveAsync(T entity);
 }

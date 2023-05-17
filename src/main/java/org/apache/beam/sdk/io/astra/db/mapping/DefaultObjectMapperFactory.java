@@ -49,9 +49,21 @@ import org.apache.beam.sdk.transforms.SerializableFunction;
  */
 public class DefaultObjectMapperFactory<T> implements SerializableFunction<Session, Mapper> {
 
+  /**
+   * current MappingManager
+   */
   private transient MappingManager mappingManager;
+
+  /**
+   * current entity
+   */
   final Class<T> entity;
 
+  /**
+   * Constructor
+   *
+   * @param entity the entity class
+   */
   public DefaultObjectMapperFactory(Class<T> entity) {
     this.entity = entity;
   }

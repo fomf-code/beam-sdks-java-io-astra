@@ -32,10 +32,19 @@ import org.apache.beam.sdk.transforms.SerializableFunction;
  */
 public class CassandraRowMapperFactory implements SerializableFunction<Session, Mapper> {
 
+    /**
+     * Current keyspace
+     */
     private final ValueProvider<String> keyspace;
+
+    /**
+     * Current Table
+     */
     private final ValueProvider<String> table;
 
     /**
+     * Default constructor
+     *
      * @param cassandraTable the Cassandra table to read from.
      * @param cassandraKeyspace the Cassandra keyspace to read from.
      */

@@ -49,6 +49,8 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      *
      * @param options
      *      pipeline Options
+     * @param cql
+     *      cql command to execute
      */
     public AstraCqlQueryPTransform(AstraDbOptions options, String cql) {
         this(options.getAstraToken(), new File(options.getAstraSecureConnectBundle()), options.getKeyspace(), cql);
@@ -58,8 +60,13 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      * Execute a CQL query
      *
      * @param token
+     *      authentication token
      * @param secureConnectBundle
+     *      secure connect bundle
      * @param keyspace
+     *      target keyspace
+     * @param cql
+     *      cql query to execute
      */
     public AstraCqlQueryPTransform(String token, File secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
@@ -80,8 +87,13 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      * Execute a CQL query
      *
      * @param token
+     *      authentication token
      * @param secureConnectBundle
+     *      secure connect bundle
      * @param keyspace
+     *      target keyspace
+     * @param cql
+     *      cql query to execute
      */
     public AstraCqlQueryPTransform(String token, byte[] secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
@@ -97,6 +109,14 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
                 .execute(cql);
     }
 
+    /**
+     * Execute a CQL query
+     *
+     * @param input
+     *      current values in the pipeline
+     * @return
+     *      same values
+     */
     @Override
     public PCollection<T> expand(PCollection<T> input) {
         return input;

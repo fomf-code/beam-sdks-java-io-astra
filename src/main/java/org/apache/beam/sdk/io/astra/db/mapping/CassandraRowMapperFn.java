@@ -62,9 +62,6 @@ import java.util.stream.Collectors;
  * This is an implementation of the Cassandra Mapper interface which allows custom Row Mapping logic
  * to be injected into the Beam CassandraIO. The goal of this implementation is to take a Cassandra
  * Resultset and for each of the rows map them into a BeamRow.
- *
- * @see <a href="https://beam.apache.org/releases/javadoc/2.12
- *     .0/org/apache/beam/sdk/io/cassandra/Mapper.html"> The Cassandra Mapper Interface</a>
  */
 class CassandraRowMapperFn implements Mapper<Row>, Serializable {
 
@@ -82,8 +79,6 @@ class CassandraRowMapperFn implements Mapper<Row>, Serializable {
      * Constructor used by CassandraRowMapperFactory.
      *
      * @see CassandraRowMapperFactory
-     * @see <a href="https://beam.apache.org/releases/javadoc/2.12
-     *     .0/org/apache/beam/sdk/io/cassandra/Mapper.html"> The Cassandra Mapper Interface</a>
      * @see Row
      * @param session the Cassandra session.
      * @param keyspace the Cassandra keyspace to read data from.

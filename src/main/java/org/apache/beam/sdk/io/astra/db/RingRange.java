@@ -49,18 +49,38 @@ import org.apache.beam.sdk.annotations.Experimental.Kind;
   "nullness" // TODO(https://github.com/apache/beam/issues/20497)
 })
 public final class RingRange implements Serializable {
+
+  /** Start of the Range. */
   private final BigInteger start;
+
+  /** End of the Range. */
   private final BigInteger end;
 
+  /**
+   * Default Constructor.
+   *
+   * @param start start of the range
+   * @param end end of the range
+   */
   private RingRange(BigInteger start, BigInteger end) {
     this.start = start;
     this.end = end;
   }
 
+  /**
+   * Getter for start.
+   *
+   * @return start of the range
+   */
   public BigInteger getStart() {
     return start;
   }
 
+  /**
+   * Getter for the end
+   * @return
+   *    end of the range
+   */
   public BigInteger getEnd() {
     return end;
   }
@@ -68,7 +88,10 @@ public final class RingRange implements Serializable {
   /**
    * Returns the size of this range.
    *
-   * @return size of the range, max - range, in case of wrap
+   * @param ringSize
+   *    size of the ring
+   * @return
+   *    size of the range, max - range, in case of wrap
    */
   BigInteger span(BigInteger ringSize) {
     return (start.compareTo(end) >= 0) ? end.subtract(start).add(ringSize) : end.subtract(start);
@@ -84,6 +107,16 @@ public final class RingRange implements Serializable {
     return String.format("(%s,%s]", start.toString(), end.toString());
   }
 
+  /**
+   * Constructor static.
+   *
+   * @param start
+   *    start of the range
+   * @param end
+   *   end of the range
+   * @return
+   *   new instance of RingRange
+   */
   public static RingRange of(BigInteger start, BigInteger end) {
     return new RingRange(start, end);
   }

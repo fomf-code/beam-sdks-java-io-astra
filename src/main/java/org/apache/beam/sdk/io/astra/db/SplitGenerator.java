@@ -43,15 +43,41 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Splits given Cassandra table's token range into splits. */
+/**
+ * Splits given Cassandra table's token range into splits.
+ */
 public final class SplitGenerator {
+
+  /**
+   * Logger for the class.
+   */
   private static final Logger LOG = LoggerFactory.getLogger(SplitGenerator.class);
 
+  /**
+   * Partitionner Algorithm
+   */
   private final String partitioner;
+
+  /**
+   * Range Min
+   */
   private final BigInteger rangeMin;
+
+  /**
+   * Range Max
+   */
   private final BigInteger rangeMax;
+
+  /**
+   * Range Size
+   */
   private final BigInteger rangeSize;
 
+  /**
+   * Default Constructor.
+   *
+   * @param partitioner Partitioner
+   */
   public SplitGenerator(String partitioner) {
     rangeMin = getRangeMin(partitioner);
     rangeMax = getRangeMax(partitioner);
@@ -59,6 +85,14 @@ public final class SplitGenerator {
     this.partitioner = partitioner;
   }
 
+  /**
+   * Compute minimum token for a given split.
+   *
+   * @param partitioner
+   *    current partitioner
+   * @return
+   *    minimum token
+   */
   static BigInteger getRangeMin(String partitioner) {
     if (partitioner.endsWith("RandomPartitioner")) {
       return BigInteger.ZERO;
@@ -70,6 +104,14 @@ public final class SplitGenerator {
     }
   }
 
+  /**
+   * Compute maximum token for a given split.
+   *
+   * @param partitioner
+   *    current partitioner
+   * @return
+   *    maximum token
+   */
   static BigInteger getRangeMax(String partitioner) {
     if (partitioner.endsWith("RandomPartitioner")) {
       return BigInteger.valueOf(2).pow(127).subtract(BigInteger.ONE);
@@ -81,6 +123,14 @@ public final class SplitGenerator {
     }
   }
 
+  /**
+   * Compute size for a given split.
+   *
+   * @param partitioner
+   *    current partitioner
+   * @return
+   *    size of the range
+   */
   static BigInteger getRangeSize(String partitioner) {
     return getRangeMax(partitioner).subtract(getRangeMin(partitioner)).add(BigInteger.ONE);
   }

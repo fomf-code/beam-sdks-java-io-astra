@@ -49,13 +49,18 @@ import java.util.concurrent.Future;
  *
  * @see DefaultObjectMapperFactory
  */
-@SuppressWarnings({
-  "rawtypes" // TODO(https://github.com/apache/beam/issues/20447)
-})
 class DefaultObjectMapper<T> implements Mapper<T>, Serializable {
 
+  /**
+   * current Mapper
+   */
   private final transient com.datastax.driver.mapping.Mapper<T> mapper;
 
+  /**
+   * Constructor
+   *
+   * @param mapper current Mapper
+   */
   DefaultObjectMapper(com.datastax.driver.mapping.Mapper mapper) {
     this.mapper = mapper;
   }

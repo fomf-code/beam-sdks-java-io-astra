@@ -88,29 +88,59 @@ public class AstraDbIO {
    */
   private AstraDbIO() {}
 
-  /** Provide a {@link Read} {@link PTransform} to read data from a Cassandra database. */
+  /**
+   * Provide a {@link Read} {@link PTransform}.
+   *
+   * @param <T>
+   *    values used in the pipeline
+   * @return
+   *    a {@link Read} {@link PTransform} to read data from an Astra database.
+   */
   public static <T> Read<T> read() {
     return new AutoValue_AstraDbIO_Read.Builder<T>().build();
   }
 
-  /** Provide a {@link ReadAll} {@link PTransform} to read data from a Cassandra database. */
+  /**
+   * Provide a {@link ReadAll} {@link PTransform}.
+   *
+   * @param <T>
+   *    values used in the pipeline
+   * @return
+   *    a {@link ReadAll} {@link PTransform} to read data from an Astra database.
+   */
   public static <T> ReadAll<T> readAll() {
     return new AutoValue_AstraDbIO_ReadAll.Builder<T>().build();
   }
 
-  /** Provide a {@link Write} {@link PTransform} to write data to a Cassandra database. */
+  /**
+   * Provide a {@link Write} {@link PTransform}.
+   *
+   * @param <T>
+   *    values used in the pipeline
+   * @return
+   *    a {@link Write} {@link PTransform} to write data to an Astra database.
+   */
   public static <T> Write<T> write() {
     return Write.<T>builder(MutationType.WRITE).build();
   }
 
-  /** Provide a {@link Write} {@link PTransform} to delete data to a Cassandra database. */
+  /**
+   * Provide a {@link Write} {@link PTransform}.
+   *
+   * @param <T>
+   *    values used in the pipeline
+   * @return
+   *    a {@link Write} {@link PTransform} to delete data to a Cassandra database.
+   */
   public static <T> Write<T> delete() {
     return Write.<T>builder(MutationType.DELETE).build();
   }
 
   /**
-   * A {@link PTransform} to read data from Apache Cassandra. See {@link AstraDbIO} for more
-   * information on usage and configuration.
+   * A {@link PTransform} to read data from Apache Cassandra.
+   * See {@link AstraDbIO} for more information on usage and configuration.
+   * @param <T>
+   *    Current type of values
    */
   @AutoValue
   @AutoValue.CopyAnnotations
@@ -148,35 +178,78 @@ public class AstraDbIO {
 
     abstract Builder<T> builder();
 
-    /** Specify the Cassandra keyspace where to read data. */
+
+    /**
+     * Specify the Cassandra keyspace where to read data.
+     *
+     * @param keyspace
+     *    cassandra keyspace
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withKeyspace(String keyspace) {
       checkArgument(keyspace != null, "keyspace can not be null");
       return withKeyspace(ValueProvider.StaticValueProvider.of(keyspace));
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Specify the Cassandra keyspace where to read data.
+     *
+     * @param keyspace
+     *    cassandra keyspace
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withKeyspace(ValueProvider<String> keyspace) {
       return builder().setKeyspace(keyspace).build();
     }
 
-    /** Specify the Cassandra table where to read data. */
+    /**
+     * Specify the Cassandra table where to read data.
+     *
+     * @param table
+     *    cassandra table
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withTable(String table) {
       checkArgument(table != null, "table can not be null");
       return withTable(ValueProvider.StaticValueProvider.of(table));
     }
 
-    /** Specify the Cassandra table where to read data. */
+    /**
+     * Specify the Cassandra table where to read data.
+     *
+     * @param table
+     *    cassandra table
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withTable(ValueProvider<String> table) {
       return builder().setTable(table).build();
     }
 
-    /** Specify the query to read data. */
+    /**
+     * Specify the Cassandra query where to read data.
+     *
+     * @param query
+     *    cassandra query
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withQuery(String query) {
       checkArgument(query != null && query.length() > 0, "query cannot be null");
       return withQuery(ValueProvider.StaticValueProvider.of(query));
     }
 
-    /** Specify the query to read data. */
+    /**
+     * Specify the Cassandra query where to read data.
+     *
+     * @param query
+     *    cassandra query
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withQuery(ValueProvider<String> query) {
       return builder().setQuery(query).build();
     }
@@ -185,36 +258,76 @@ public class AstraDbIO {
      * Specify the entity class (annotated POJO). The {@link AstraDbIO} will read the data and
      * convert the data as entity instances. The {@link PCollection} resulting from the read will
      * contains entity elements.
+     *
+     * @param entity
+     *    cassandra entity
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withEntity(Class<T> entity) {
       checkArgument(entity != null, "entity can not be null");
       return builder().setEntity(entity).build();
     }
 
-    /** Specify the {@link Coder} used to serialize the entity in the {@link PCollection}. */
+    /**
+     * Specify the {@link Coder} used to serialize the entity in the {@link PCollection}.
+     *
+     * @param coder
+     *    Apache Beam Coder
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withCoder(Coder<T> coder) {
       checkArgument(coder != null, "coder can not be null");
       return builder().setCoder(coder).build();
     }
 
-    /** Specify the token used for authentication. */
+    /**
+     * Specify the token used for authentication.
+     *
+     * @param token
+     *    astra token
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withToken(String token) {
       checkArgument(token != null, "token can not be null");
       return withToken(ValueProvider.StaticValueProvider.of(token));
     }
 
-    /** Specify the token used for authentication. */
+    /**
+     * Specify the token used for authentication.
+     *
+     * @param token
+     *    astra token
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withToken(ValueProvider<String> token) {
       return builder().setToken(token).build();
     }
 
-    /** Specify the consistency level for the request (e.g. ONE, LOCAL_ONE, LOCAL_QUORUM, etc). */
+    /**
+     * Specify the consistency level for the request (e.g. ONE, LOCAL_ONE, LOCAL_QUORUM, etc).
+     *
+     * @param consistencyLevel
+     *    query consistency level
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withConsistencyLevel(String consistencyLevel) {
       checkArgument(consistencyLevel != null, "consistencyLevel can not be null");
       return withConsistencyLevel(ValueProvider.StaticValueProvider.of(consistencyLevel));
     }
 
-    /** Specify the consistency level for the request (e.g. ONE, LOCAL_ONE, LOCAL_QUORUM, etc). */
+    /**
+     * Specify the consistency level for the request (e.g. ONE, LOCAL_ONE, LOCAL_QUORUM, etc).
+     *
+     * @param consistencyLevel
+     *    query consistency level
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withConsistencyLevel(ValueProvider<String> consistencyLevel) {
       return builder().setConsistencyLevel(consistencyLevel).build();
     }
@@ -223,6 +336,11 @@ public class AstraDbIO {
      * It's possible that system.size_estimates isn't populated or that the number of splits
      * computed by Beam is still to low for Cassandra to handle it. This setting allows to enforce a
      * minimum number of splits in case Beam cannot compute it correctly.
+     *
+     * @param minNumberOfSplits
+     *    number of splits for token range computation
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withMinNumberOfSplits(Integer minNumberOfSplits) {
       checkArgument(minNumberOfSplits != null, "minNumberOfSplits can not be null");
@@ -234,6 +352,11 @@ public class AstraDbIO {
      * It's possible that system.size_estimates isn't populated or that the number of splits
      * computed by Beam is still to low for Cassandra to handle it. This setting allows to enforce a
      * minimum number of splits in case Beam cannot compute it correctly.
+     *
+     * @param minNumberOfSplits
+     *    number of splits for token range computation
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withMinNumberOfSplits(ValueProvider<Integer> minNumberOfSplits) {
       return builder().setMinNumberOfSplits(minNumberOfSplits).build();
@@ -242,6 +365,11 @@ public class AstraDbIO {
     /**
      * Specify the Cassandra client connect timeout in ms. See
      * https://docs.datastax.com/en/drivers/java/3.8/com/datastax/driver/core/SocketOptions.html#setConnectTimeoutMillis-int-
+     *
+     * @param timeout
+     *    connection timeout in ms
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withConnectTimeout(Integer timeout) {
       checkArgument(timeout != null, "Connect timeout can not be null");
@@ -252,6 +380,11 @@ public class AstraDbIO {
     /**
      * Specify the Cassandra client connect timeout in ms. See
      * https://docs.datastax.com/en/drivers/java/3.8/com/datastax/driver/core/SocketOptions.html#setConnectTimeoutMillis-int-
+     *
+     * @param timeout
+     *    connection timeout in ms
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withConnectTimeout(ValueProvider<Integer> timeout) {
       return builder().setConnectTimeout(timeout).build();
@@ -260,6 +393,11 @@ public class AstraDbIO {
     /**
      * Specify the Cassandra client read timeout in ms. See
      * https://docs.datastax.com/en/drivers/java/3.8/com/datastax/driver/core/SocketOptions.html#setReadTimeoutMillis-int-
+     *
+     * @param timeout
+     *    read timeout in ms
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withReadTimeout(Integer timeout) {
       checkArgument(timeout != null, "Read timeout can not be null");
@@ -270,6 +408,11 @@ public class AstraDbIO {
     /**
      * Specify the Cassandra client read timeout in ms. See
      * https://docs.datastax.com/en/drivers/java/3.8/com/datastax/driver/core/SocketOptions.html#setReadTimeoutMillis-int-
+     *
+     * @param timeout
+     *    read timeout in ms
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withReadTimeout(ValueProvider<Integer> timeout) {
       return builder().setReadTimeout(timeout).build();
@@ -278,6 +421,11 @@ public class AstraDbIO {
     /**
      * A factory to create a specific {@link Mapper} for a given Cassandra Session. This is useful
      * to provide mappers that don't rely in Cassandra annotated objects.
+     *
+     * @param mapperFactory
+     *    mapper Factory
+     * @return
+     *    current {@link Read} builder
      */
     public Read<T> withMapperFactoryFn(SerializableFunction<Session, Mapper> mapperFactory) {
       checkArgument(
@@ -286,10 +434,26 @@ public class AstraDbIO {
       return builder().setMapperFactoryFn(mapperFactory).build();
     }
 
+    /**
+     * Specify ring ranges explicitly.
+     *
+     * @param ringRange
+     *    ring range
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withRingRanges(Set<RingRange> ringRange) {
       return withRingRanges(ValueProvider.StaticValueProvider.of(ringRange));
     }
 
+    /**
+     * Specify ring ranges explicitly.
+     *
+     * @param ringRange
+     *    ring range
+     * @return
+     *    current {@link Read} builder
+     */
     public Read<T> withRingRanges(ValueProvider<Set<RingRange>> ringRange) {
       return builder().setRingRanges(ringRange).build();
     }
@@ -307,28 +471,51 @@ public class AstraDbIO {
       return withSecureConnectBundle(ValueProvider.StaticValueProvider.of(scbFile));
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Populate SCB as a file.
+     *
+     * @param cloudSecureConnectBundleFile
+     *    secure connect bundle file
+     * @return
+     *    reference to READ
+     */
     public Read<T> withSecureConnectBundle(ValueProvider<File> cloudSecureConnectBundleFile) {
       checkArgument(cloudSecureConnectBundleFile != null, "keyspace can not be null");
       return builder().setSecureConnectBundle(cloudSecureConnectBundleFile).build();
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Populate SCB as a stream.
+     *
+     * @param scbBytes
+     *    secure connect bundle file
+     * @return
+     *    reference to READ
+     */
     public Read<T> withSecureConnectBundleData(byte[] scbBytes) {
       checkArgument(scbBytes != null, "SCB url cannot be null");
       return withSecureConnectBundleData(ValueProvider.StaticValueProvider.of(scbBytes));
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Populate SCB as a stream.
+     *
+     * @param scbBytes
+     *    secure connect bundle file
+     * @return
+     *    reference to READ
+     */
     public Read<T> withSecureConnectBundleData(ValueProvider<byte[]> scbBytes) {
       checkArgument(scbBytes != null, "SCB url cannot be null");
       return builder().setSecureConnectBundleData(scbBytes).build();
     }
 
     /**
-     * Expand for  READ
+     * Read function to start pipeline.
      * @param input
+     *    starter for the pipeline
      * @return
+     *    collection of values.
      */
     @Override
     public PCollection<T> expand(PBegin input) {
@@ -441,7 +628,11 @@ public class AstraDbIO {
 
   /** Specify the mutation type: either write or delete. */
   public enum MutationType {
+
+    /** Write mutation type. */
     WRITE,
+
+    /** Delete mutation type. */
     DELETE
   }
 
@@ -478,7 +669,14 @@ public class AstraDbIO {
       return new AutoValue_AstraDbIO_Write.Builder<T>().setMutationType(mutationType);
     }
 
-    /** Specify the Cassandra keyspace where to write data. */
+    /**
+     * Specify the token used for authentication.
+     *
+     * @param token
+     *    astra token
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withToken(String token) {
       checkArgument(
               token != null,
@@ -489,12 +687,26 @@ public class AstraDbIO {
       return withToken(ValueProvider.StaticValueProvider.of(token));
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Specify the token used for authentication.
+     *
+     * @param token
+     *    astra token
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withToken(ValueProvider<String> token) {
       return builder().setToken(token).build();
     }
 
-    /** Specify the Cassandra keyspace where to write data. */
+    /**
+     * Specify the Cassandra keyspace where to write data.
+     *
+     * @param keyspace
+     *    astra keyspace
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withKeyspace(String keyspace) {
       checkArgument(
           keyspace != null,
@@ -505,7 +717,14 @@ public class AstraDbIO {
       return withKeyspace(ValueProvider.StaticValueProvider.of(keyspace));
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Specify the Cassandra keyspace where to write data.
+     *
+     * @param keyspace
+     *    astra keyspace
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withKeyspace(ValueProvider<String> keyspace) {
       return builder().setKeyspace(keyspace).build();
     }
@@ -513,6 +732,11 @@ public class AstraDbIO {
     /**
      * Specify the entity class in the input {@link PCollection}. The {@link AstraDbIO} will map
      * this entity to the Cassandra table thanks to the annotations.
+     *
+     * @param entity
+     *    java entity
+     * @return
+     *    current {@link Write} builder
      */
     public Write<T> withEntity(Class<T> entity) {
       checkArgument(
@@ -524,7 +748,14 @@ public class AstraDbIO {
       return builder().setEntity(entity).build();
     }
 
-    /** Cassandra client socket option for connect timeout in ms. */
+    /**
+     * Cassandra client socket option for connect timeout in ms.
+     *
+     * @param timeout
+     *    connection timeout in ms
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withConnectTimeout(Integer timeout) {
       checkArgument(
           (timeout != null && timeout > 0),
@@ -536,12 +767,26 @@ public class AstraDbIO {
       return withConnectTimeout(ValueProvider.StaticValueProvider.of(timeout));
     }
 
-    /** Cassandra client socket option for connect timeout in ms. */
+    /**
+     * Cassandra client socket option for connect timeout in ms.
+     *
+     * @param timeout
+     *    connection timeout in ms
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withConnectTimeout(ValueProvider<Integer> timeout) {
       return builder().setConnectTimeout(timeout).build();
     }
 
-    /** Cassandra client socket option to set the read timeout in ms. */
+    /**
+     * Cassandra client socket option for read timeout in ms.
+     *
+     * @param timeout
+     *    read timeout in ms
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withReadTimeout(Integer timeout) {
       checkArgument(
           (timeout != null && timeout > 0),
@@ -553,7 +798,14 @@ public class AstraDbIO {
       return withReadTimeout(ValueProvider.StaticValueProvider.of(timeout));
     }
 
-    /** Cassandra client socket option to set the read timeout in ms. */
+    /**
+     * Cassandra client socket option for read timeout in ms.
+     *
+     * @param timeout
+     *    read timeout in ms
+     * @return
+     *    current {@link Write} builder
+     */
     public Write<T> withReadTimeout(ValueProvider<Integer> timeout) {
       return builder().setReadTimeout(timeout).build();
     }
@@ -568,31 +820,60 @@ public class AstraDbIO {
      * @param scbFile
      *    secure connect bundle file
      * @return
-     *    reference to READ
+     *    reference to write
      */
     public Write<T> withSecureConnectBundle(File scbFile) {
       checkArgument(scbFile != null, "keyspace can not be null");
       return withSecureConnectBundle(ValueProvider.StaticValueProvider.of(scbFile));
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Populate SCB as a file.
+     *
+     * @param cloudSecureConnectBundleFile
+     *    secure connect bundle file
+     * @return
+     *    reference to write
+     */
     public Write<T> withSecureConnectBundle(ValueProvider<File> cloudSecureConnectBundleFile) {
       checkArgument(cloudSecureConnectBundleFile != null, "keyspace can not be null");
       return builder().setSecureConnectBundle(cloudSecureConnectBundleFile).build();
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Populate SCB as a stream.
+     *
+     * @param scbStream
+     *    secure connect bundle file
+     * @return
+     *    reference to write
+     */
     public Write<T> withSecureConnectBundleData(byte[] scbStream) {
       checkArgument(scbStream != null, "scbStream cannot be null");
       return withSecureConnectBundleData(ValueProvider.StaticValueProvider.of(scbStream));
     }
 
-    /** Specify the Cassandra keyspace where to read data. */
+    /**
+     * Populate SCB as a stream.
+     *
+     * @param scbStream
+     *    secure connect bundle file
+     * @return
+     *    reference to write
+     */
     public Write<T> withSecureConnectBundleData(ValueProvider<byte[]> scbStream) {
       checkArgument(scbStream != null, "scbStream cannot be null");
       return builder().setSecureConnectBundleData(scbStream).build();
     }
 
+    /**
+     * Specify the Mapper factory function.
+     *
+     * @param mapperFactoryFn
+     *    current mapper factory function
+     * @return
+     *    reference to write
+     */
     public Write<T> withMapperFactoryFn(SerializableFunction<Session, Mapper> mapperFactoryFn) {
       checkArgument(
           mapperFactoryFn != null,
@@ -750,18 +1031,43 @@ public class AstraDbIO {
      */
     private static final int CONCURRENT_ASYNC_QUERIES = 100;
 
+    /**
+     * Cassandra cluster to connect to.
+     */
     private final Cluster cluster;
 
+    /**
+     * Cassandra session to use.
+     */
     private final Session session;
 
+    /**
+     * The mapper factory function to use.
+     */
     private final SerializableFunction<Session, Mapper> mapperFactoryFn;
 
+    /**
+     * The futures of the current batch of mutations.
+     */
     private List<Future<Void>> mutateFutures;
 
+    /**
+     * The function to use to mutate the entity.
+     */
     private final BiFunction<Mapper<T>, T, Future<Void>> mutator;
 
+    /**
+     * The name of the operation to perform.
+     */
     private final String operationName;
 
+    /**
+     * Creates a new {@link Mutator} instance.
+     *
+     * @param spec The {@link Write} specification.
+     * @param mutator The function to use to mutate the entity.
+     * @param operationName The name of the operation to perform.
+     */
     Mutator(Write<T> spec, BiFunction<Mapper<T>, T, Future<Void>> mutator, String operationName) {
       this.cluster    = AstraDbConnectionManager.getInstance().getCluster(spec);
       //this.session    = cluster.connect(spec.keyspace().get());
@@ -772,12 +1078,20 @@ public class AstraDbIO {
       this.operationName = operationName;
     }
 
+
     /**
      * Mutate the entity to the Cassandra instance, using {@link Mapper} obtained with the Mapper
      * factory, the DefaultObjectMapperFactory uses {@link
      * com.datastax.driver.mapping.MappingManager}. This method uses {@link
      * Mapper#saveAsync(Object)} method, which is asynchronous. Beam will wait for all futures to
      * complete, to guarantee all writes have succeeded.
+     *
+     * @param entity
+     *    current entity
+     * @throws ExecutionException
+     *    error occured at execution
+     * @throws InterruptedException
+     *    error occured at execution
      */
     void mutate(T entity) throws ExecutionException, InterruptedException {
       Mapper<T> mapper = mapperFactoryFn.apply(session);
@@ -832,7 +1146,15 @@ public class AstraDbIO {
 
     abstract Builder<T> builder();
 
-    /** Specify the {@link Coder} used to serialize the entity in the {@link PCollection}. */
+
+    /**
+     * Specify the {@link Coder} used to serialize the entity in the {@link PCollection}.
+     *
+     * @param coder
+     *    current coder
+     * @return
+     *   current builder
+     */
     public ReadAll<T> withCoder(Coder<T> coder) {
       checkArgument(coder != null, "coder can not be null");
       return builder().setCoder(coder).build();

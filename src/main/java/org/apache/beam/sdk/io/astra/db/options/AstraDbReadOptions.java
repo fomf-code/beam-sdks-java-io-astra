@@ -28,21 +28,65 @@ import org.apache.beam.sdk.options.Validation;
  */
 public interface AstraDbReadOptions extends AstraDbOptions {
 
+    /**
+     * Access Astra Table name
+     * @return the Astra table name
+     */
     @Description("Source Table")
     @Validation.Required
     String getTable();
+
+    /**
+     * Update the Astra Table
+     *
+     * @param table
+     *      new value for Astra table name
+     */
     void setTable(String table);
 
+    /**
+     * Access Astra read timeout
+     * @return the Astra read timeout
+     */
     @Description("Timeout for Read in milliseconds")
     int getReadTimeout();
+
+    /**
+     * Update the Astra read timeout.
+     *
+     * @param connectTimeout
+     *      new value for Astra read timeout
+     */
     void setReadTimeout(int connectTimeout);
 
+    /**
+     * Access Astra consistency level
+     * @return the Astra consistency level
+     */
     @Description("Consistency Level for Read")
     String getConsistencyLevel();
+
+    /**
+     * Update the Astra consitency level
+     *
+     * @param consistencyLevel
+     *      new value for Astra consistency level
+     */
     void setConsistencyLevel(String consistencyLevel);
 
+    /**
+     * Access Astra cql query
+     * @return the Astra cq query
+     */
     @Description("Cql Query")
     String getQuery();
+
+    /**
+     * Update the Astra Query
+     *
+     * @param cqlQueryToExecute
+     *      new value for Astra query to execute
+     */
     void setQuery(String cqlQueryToExecute);
 
 }

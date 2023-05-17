@@ -92,7 +92,10 @@ public class AstraDbConnectionManager {
   }
 
   /**
-   * Singleton Pattern
+   * Singleton Pattern.
+   *
+   * @return
+   *    singleton instance.
    */
   public static synchronized AstraDbConnectionManager getInstance() {
     if (_instance == null) {
@@ -174,16 +177,24 @@ public class AstraDbConnectionManager {
   }
 
  /**
-   * Open a retrieve a session with all Astra Parameters
+   * Open a retrieve a session with all Astra Parameters.
    *
    * @param token
    *    token
+   * @param consistencyLevel
+   *     consitency level for the session
+   * @param connectTimeout
+   *     connection timeout in milliseconds
+   *  @param readTimeout
+   *     read timeout in milliseconds
    * @param scbFile
    *    secure connect bundle file
    * @param scbStream
    *    secure connect bundle stream
+   * @param keyspace
+   *   keyspace
    * @return
-   *    SHA1
+   *    cassandra session
    */
   public synchronized Session getSession(
           ValueProvider<String> token,
@@ -202,9 +213,15 @@ public class AstraDbConnectionManager {
     return cacheSessions.get(sessionSha1);
   }
 
+  /**
+   * Retrieve a Cluster from a @see AstraDbIO.Write.
+   * @param write
+   *    current writer
+   * @return
+   *    current cluster
+   */
   public synchronized Cluster getCluster(AstraDbIO.Write<?> write) {
     if (write.token() == null) throw new IllegalArgumentException("Token is required.");
-
     return getCluster(write.token(),
             ValueProvider.StaticValueProvider.of(ConsistencyLevel.LOCAL_QUORUM.name()),
             write.connectTimeout(),
