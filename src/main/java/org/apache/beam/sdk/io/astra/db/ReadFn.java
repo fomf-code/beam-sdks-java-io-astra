@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.db;
 
 /*-
  * #%L
@@ -47,8 +47,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.beam.sdk.io.astra.AstraIO.Read;
-import org.apache.beam.sdk.io.astra.mapping.Mapper;
+import org.apache.beam.sdk.io.astra.db.AstraDbIO.Read;
+import org.apache.beam.sdk.io.astra.db.mapping.Mapper;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Joiner;
 import org.slf4j.Logger;
@@ -65,7 +65,7 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
   @ProcessElement
   public void processElement(@Element Read<T> read, OutputReceiver<T> receiver) {
     try {
-      Session session = ConnectionManager.getInstance().getSession(read);
+      Session session = AstraDbConnectionManager.getInstance().getSession(read);
       Mapper<T> mapper = read.mapperFactoryFn().apply(session);
       String partitionKey =
           session.getCluster().getMetadata().getKeyspace(read.keyspace().get())
@@ -109,7 +109,7 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
         outputResults(rs, receiver, mapper);
       }
     } catch (Exception ex) {
-      LOG.error("error", ex);
+      LOG.info("Non filtered query could raise an expected error for last chunk: {}", ex.getMessage());
     }
   }
 

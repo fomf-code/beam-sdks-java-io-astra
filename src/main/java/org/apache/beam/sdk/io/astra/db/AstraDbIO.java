@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.db;
 
 /*-
  * #%L
@@ -43,8 +43,8 @@ import org.apache.beam.sdk.annotations.Experimental;
 import org.apache.beam.sdk.annotations.Experimental.Kind;
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.coders.SerializableCoder;
-import org.apache.beam.sdk.io.astra.mapping.DefaultObjectMapperFactory;
-import org.apache.beam.sdk.io.astra.mapping.Mapper;
+import org.apache.beam.sdk.io.astra.db.mapping.DefaultObjectMapperFactory;
+import org.apache.beam.sdk.io.astra.db.mapping.Mapper;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.*;
@@ -76,26 +76,26 @@ import static org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Prec
  * An IO to read and write from/to Astra.
  */
 @Experimental(Kind.SOURCE_SINK)
-public class AstraIO {
+public class AstraDbIO {
 
   /**
    * Work with CQL and Astra.
    */
-  private static final Logger LOG = LoggerFactory.getLogger(AstraIO.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AstraDbIO.class);
 
   /**
    * Hidding default constructor.
    */
-  private AstraIO() {}
+  private AstraDbIO() {}
 
   /** Provide a {@link Read} {@link PTransform} to read data from a Cassandra database. */
   public static <T> Read<T> read() {
-    return new AutoValue_AstraIO_Read.Builder<T>().build();
+    return new AutoValue_AstraDbIO_Read.Builder<T>().build();
   }
 
   /** Provide a {@link ReadAll} {@link PTransform} to read data from a Cassandra database. */
   public static <T> ReadAll<T> readAll() {
-    return new AutoValue_AstraIO_ReadAll.Builder<T>().build();
+    return new AutoValue_AstraDbIO_ReadAll.Builder<T>().build();
   }
 
   /** Provide a {@link Write} {@link PTransform} to write data to a Cassandra database. */
@@ -109,7 +109,7 @@ public class AstraIO {
   }
 
   /**
-   * A {@link PTransform} to read data from Apache Cassandra. See {@link AstraIO} for more
+   * A {@link PTransform} to read data from Apache Cassandra. See {@link AstraDbIO} for more
    * information on usage and configuration.
    */
   @AutoValue
@@ -182,7 +182,7 @@ public class AstraIO {
     }
 
     /**
-     * Specify the entity class (annotated POJO). The {@link AstraIO} will read the data and
+     * Specify the entity class (annotated POJO). The {@link AstraDbIO} will read the data and
      * convert the data as entity instances. The {@link PCollection} resulting from the read will
      * contains entity elements.
      */
@@ -342,7 +342,7 @@ public class AstraIO {
               .apply(Create.of(this))
               .apply("Create Splits", ParDo.of(new SplitFn<T>()))
               .setCoder(SerializableCoder.of(new TypeDescriptor<Read<T>>() {}))
-              .apply("ReadAll", org.apache.beam.sdk.io.astra.AstraIO.<T>readAll().withCoder(coder()));
+              .apply("ReadAll", AstraDbIO.<T>readAll().withCoder(coder()));
     }
 
     /**
@@ -356,7 +356,7 @@ public class AstraIO {
       public SplitFn() {}
 
       @ProcessElement
-      public void process(@Element AstraIO.Read<T> read, OutputReceiver<Read<T>> outputReceiver) {
+      public void process(@Element AstraDbIO.Read<T> read, OutputReceiver<Read<T>> outputReceiver) {
         Set<RingRange> ringRanges = getRingRanges(read);
         for (RingRange rr : ringRanges) {
           outputReceiver.output(read.withRingRanges(ImmutableSet.of(rr)));
@@ -365,7 +365,7 @@ public class AstraIO {
 
       private static <T> Set<RingRange> getRingRanges(Read<T> read) {
        Cluster cluster =
-            ConnectionManager.getInstance().getCluster(
+            AstraDbConnectionManager.getInstance().getCluster(
                 read.token(),
                 read.consistencyLevel(),
                 read.connectTimeout(),
@@ -446,7 +446,7 @@ public class AstraIO {
   }
 
   /**
-   * A {@link PTransform} to mutate into Apache Cassandra. See {@link AstraIO} for details on
+   * A {@link PTransform} to mutate into Apache Cassandra. See {@link AstraDbIO} for details on
    * usage and configuration.
    */
   @AutoValue
@@ -475,7 +475,7 @@ public class AstraIO {
     abstract Builder<T> builder();
 
     static <T> Builder<T> builder(MutationType mutationType) {
-      return new AutoValue_AstraIO_Write.Builder<T>().setMutationType(mutationType);
+      return new AutoValue_AstraDbIO_Write.Builder<T>().setMutationType(mutationType);
     }
 
     /** Specify the Cassandra keyspace where to write data. */
@@ -511,7 +511,7 @@ public class AstraIO {
     }
 
     /**
-     * Specify the entity class in the input {@link PCollection}. The {@link AstraIO} will map
+     * Specify the entity class in the input {@link PCollection}. The {@link AstraDbIO} will map
      * this entity to the Cassandra table thanks to the annotations.
      */
     public Write<T> withEntity(Class<T> entity) {
@@ -763,9 +763,9 @@ public class AstraIO {
     private final String operationName;
 
     Mutator(Write<T> spec, BiFunction<Mapper<T>, T, Future<Void>> mutator, String operationName) {
-      this.cluster    = ConnectionManager.getInstance().getCluster(spec);
+      this.cluster    = AstraDbConnectionManager.getInstance().getCluster(spec);
       //this.session    = cluster.connect(spec.keyspace().get());
-      this.session    = ConnectionManager.getInstance().getSession(spec);
+      this.session    = AstraDbConnectionManager.getInstance().getSession(spec);
       this.mapperFactoryFn = spec.mapperFactoryFn();
       this.mutateFutures = new ArrayList<>();
       this.mutator = mutator;
@@ -810,7 +810,7 @@ public class AstraIO {
   }
 
   /**
-   * A {@link PTransform} to read data from Apache Cassandra. See {@link AstraIO} for more
+   * A {@link PTransform} to read data from Apache Cassandra. See {@link AstraDbIO} for more
    * information on usage and configuration.
    */
   @AutoValue

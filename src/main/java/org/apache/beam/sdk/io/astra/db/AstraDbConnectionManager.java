@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.db;
 
 /*-
  * #%L
@@ -38,7 +38,7 @@ package org.apache.beam.sdk.io.astra;
  */
 
 import com.datastax.driver.core.*;
-import org.apache.beam.sdk.io.astra.AstraIO.Read;
+import org.apache.beam.sdk.io.astra.db.AstraDbIO.Read;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,15 +57,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Clusters: Token / Cloud Secure Bundle</p>
  * <p>Sessions: Cluster / Keyspace</p>
  */
-public class ConnectionManager {
+public class AstraDbConnectionManager {
 
   /** Logger. */
-  private static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AstraDbConnectionManager.class);
 
   /**
    * Singleton.
    */
-  private static ConnectionManager _instance = null;
+  private static AstraDbConnectionManager _instance = null;
 
   /**
    * Cache for clusters (token / cloud secure bundle).
@@ -83,12 +83,20 @@ public class ConnectionManager {
   private MessageDigest md;
 
   /**
+   * Define a hook to gracefully shutdown open sessions at shutdown.
+   */
+  static {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      cleanup();
+    }));
+  }
+
+  /**
    * Singleton Pattern
    */
-  public static synchronized ConnectionManager getInstance() {
+  public static synchronized AstraDbConnectionManager getInstance() {
     if (_instance == null) {
       _instance = initialize();
-      gracefullyShutdownHook();
     }
     return _instance;
   }
@@ -99,8 +107,8 @@ public class ConnectionManager {
    * @return
    *   singleton instance
    */
-  private static ConnectionManager initialize() {
-    ConnectionManager connManager = new ConnectionManager();
+  private static AstraDbConnectionManager initialize() {
+    AstraDbConnectionManager connManager = new AstraDbConnectionManager();
     try {
       connManager.md = MessageDigest.getInstance("SHA-1");
     } catch (NoSuchAlgorithmException e) {
@@ -110,17 +118,21 @@ public class ConnectionManager {
   }
 
   /**
-   * Define a hook to gracefully shutdown open sessions at shutdown.
+   * Closing Session and Clusters.
    */
-  private static void gracefullyShutdownHook() {
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      for (Session session : _instance.cacheSessions.values()) {
-        if (!session.isClosed()) {
-          LOG.info("Closing Cassandra Session.");
-          session.close();
-        }
-      }
-    }));
+  public static final void cleanup() {
+    if (_instance != null) {
+      _instance.cacheSessions
+              .values()
+              .stream()
+              .filter(s->!s.isClosed())
+              .forEach(Session::close);
+      _instance.cacheClusters
+              .values()
+              .stream()
+              .filter(c->!c.isClosed())
+              .forEach(Cluster::close);
+    }
   }
 
   /**
@@ -131,7 +143,7 @@ public class ConnectionManager {
    * @return
    *    cassandra session
    */
-  public synchronized Session getSession(AstraIO.Write<?> write) {
+  public synchronized Session getSession(AstraDbIO.Write<?> write) {
     if (write.keyspace() == null) throw new IllegalArgumentException("Keyspace is required.");
     return getSession(write.token(),
             ValueProvider.StaticValueProvider.of(ConsistencyLevel.LOCAL_QUORUM.name()),
@@ -190,7 +202,7 @@ public class ConnectionManager {
     return cacheSessions.get(sessionSha1);
   }
 
-  public synchronized Cluster getCluster(AstraIO.Write<?> write) {
+  public synchronized Cluster getCluster(AstraDbIO.Write<?> write) {
     if (write.token() == null) throw new IllegalArgumentException("Token is required.");
 
     return getCluster(write.token(),

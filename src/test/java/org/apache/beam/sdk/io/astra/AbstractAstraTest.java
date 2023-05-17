@@ -19,10 +19,10 @@ import java.io.File;
  * To run unit test you need to set the following environment variables:
  * - ASTRA_DB_APPLICATION_TOKEN
  */
-public abstract class AbstractAstraDbTest {
+public abstract class AbstractAstraTest {
 
     /** Logger. */
-    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractAstraDbTest.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractAstraTest.class);
 
     /** Test Constants. */
     public static final String TEST_DB_NAME = "beam_sdk_integration_test";

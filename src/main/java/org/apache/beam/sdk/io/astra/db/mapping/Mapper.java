@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.sdk.io.astra.mapping;
+package org.apache.beam.sdk.io.astra.db.mapping;
 
 /*-
  * #%L
@@ -42,7 +42,7 @@ import java.util.Iterator;
 import java.util.concurrent.Future;
 import org.apache.beam.sdk.annotations.Experimental;
 import org.apache.beam.sdk.annotations.Experimental.Kind;
-import org.apache.beam.sdk.io.astra.AstraIO;
+import org.apache.beam.sdk.io.astra.db.AstraDbIO;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 
 /**
@@ -52,7 +52,7 @@ import org.apache.beam.sdk.transforms.SerializableFunction;
  * <p>To Implement a custom mapper you need to: 1) Create an implementation of {@link Mapper}. 2)
  * Create a {@link SerializableFunction} that instantiates the {@link Mapper} for a given Session,
  * for an example see {@link DefaultObjectMapperFactory}). 3) Pass this function to {@link
- * AstraIO.Read#withMapperFactoryFn(SerializableFunction)} in the CassandraIO builder. <br>
+ * AstraDbIO.Read#withMapperFactoryFn(SerializableFunction)} in the CassandraIO builder. <br>
  * Example:
  *
  * <pre>{@code

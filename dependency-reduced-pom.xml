@@ -157,34 +157,62 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>2.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.astra</groupId>
+      <artifactId>astra-sdk-devops</artifactId>
+      <version>0.5</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>logback-classic</artifactId>
+          <groupId>ch.qos.logback</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>httpclient5</artifactId>
+          <groupId>org.apache.httpcomponents.client5</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>jackson-bom</artifactId>
+          <groupId>com.fasterxml.jackson</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>jackson-datatype-jsr310</artifactId>
+          <groupId>com.fasterxml.jackson.datatype</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-runners-direct-java</artifactId>
-      <version>2.47.0</version>
+      <version>2.46.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
   <properties>
     <version.maven.plugin.jar>3.3.0</version.maven.plugin.jar>
-    <libraries-bom.version>26.8.0</libraries-bom.version>
-    <beam.version>2.47.0</beam.version>
+    <beam.version>2.46.0</beam.version>
     <slf4j.version>2.0.7</slf4j.version>
+    <junit.version>4.13.2</junit.version>
+    <cassandra-driver-oss.version>3.11.3</cassandra-driver-oss.version>
     <logback.version>1.4.7</logback.version>
-    <cassandra.driver.oss.version>3.11.3</cassandra.driver.oss.version>
     <version.maven.plugin.license>2.0.0</version.maven.plugin.license>
     <version.maven.plugin.shade>3.4.1</version.maven.plugin.shade>
-    <guava.version>31.1-jre</guava.version>
     <version.maven.plugin.resources>3.3.1</version.maven.plugin.resources>
+    <hamcrest.version>2.2</hamcrest.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.plugin.compiler.target>11</maven.plugin.compiler.target>
     <version.maven.plugin.release>2.5.2</version.maven.plugin.release>
     <version.maven.plugin.dependency>3.5.0</version.maven.plugin.dependency>
     <version.maven.plugin.exec>1.6.0</version.maven.plugin.exec>
     <version.maven.plugin.compiler>3.11.0</version.maven.plugin.compiler>
+    <astra-sdk.version>0.5</astra-sdk.version>
     <maven.plugin.compiler.source>11</maven.plugin.compiler.source>
-    <astra.sdk.version>0.4</astra.sdk.version>
     <auto-value.version>1.10.1</auto-value.version>
-    <junit-jupiter.version>5.9.2</junit-jupiter.version>
-    <junit-platform.version>1.9.2</junit-platform.version>
     <version.maven.plugin.javadoc>3.4.1</version.maven.plugin.javadoc>
     <version.maven.plugin.surefire>2.22.2</version.maven.plugin.surefire>
     <version.maven.plugin.enforcer>3.3.0</version.maven.plugin.enforcer>

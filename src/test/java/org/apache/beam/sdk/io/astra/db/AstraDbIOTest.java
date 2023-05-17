@@ -1,9 +1,10 @@
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.db;
 
 import com.datastax.driver.core.*;
 import com.datastax.driver.mapping.annotations.*;
 import org.apache.beam.sdk.coders.SerializableCoder;
-import org.apache.beam.sdk.io.astra.mapping.Mapper;
+import org.apache.beam.sdk.io.astra.AbstractAstraTest;
+import org.apache.beam.sdk.io.astra.db.mapping.Mapper;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.*;
@@ -36,9 +37,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 @RunWith(JUnit4.class)
-public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
+public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AstraIOTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AstraDbIOTest.class);
 
     private static final long NUM_ROWS = 22L;
 
@@ -47,9 +48,6 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
     private static final String CASSANDRA_TABLE = "scientist";
 
     private static final String CASSANDRA_TABLE_SIMPLEDATA = "simpledata";
-
-    private static Cluster cluster;
-    private static Session session;
 
     @Rule
     public transient TestPipeline pipeline = TestPipeline.create();
@@ -64,8 +62,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
     @AfterClass
     public static void afterClass()
     throws InterruptedException, IOException {
-        session.close();
-        cluster.close();
+       cleanup();
     }
 
     private static void insertData() throws Exception {
@@ -132,7 +129,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
     public void testWrapAroundRingRanges() throws Exception {
         PCollection<SimpleData> simpledataPCollection =
                 pipeline.apply(
-                        AstraIO.<SimpleData>read()
+                        AstraDbIO.<SimpleData>read()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)
@@ -158,7 +155,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
     public void testRead() throws Exception {
         PCollection<Scientist> output =
                 pipeline.apply(
-                        AstraIO.<Scientist>read()
+                        AstraDbIO.<Scientist>read()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)
@@ -193,8 +190,8 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
         pipeline.run();
     }
 
-    private AstraIO.Read<Scientist> getReadWithRingRange(RingRange... rr) {
-        return AstraIO.<Scientist>read()
+    private AstraDbIO.Read<Scientist> getReadWithRingRange(RingRange... rr) {
+        return AstraDbIO.<Scientist>read()
                 .withToken(getToken())
                 .withSecureConnectBundle(getSecureConnectBundleFile())
                 .withRingRanges(new HashSet<>(Arrays.asList(rr)))
@@ -204,8 +201,8 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
                 .withEntity(Scientist.class);
     }
 
-    private AstraIO.Read<Scientist> getReadWithQuery(String query) {
-        return AstraIO.<Scientist>read()
+    private AstraDbIO.Read<Scientist> getReadWithQuery(String query) {
+        return AstraDbIO.<Scientist>read()
                 .withToken(getToken())
                 .withSecureConnectBundle(getSecureConnectBundleFile())
                 .withQuery(query)
@@ -231,7 +228,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
                 pipeline
                         .apply(Create.of(getReadWithQuery(physQuery), getReadWithQuery(mathQuery)))
                         .apply(
-                                AstraIO.<Scientist>readAll().withCoder(SerializableCoder.of(Scientist.class)));
+                                AstraDbIO.<Scientist>readAll().withCoder(SerializableCoder.of(Scientist.class)));
 
         PCollection<String> mapped =
                 output.apply(
@@ -265,7 +262,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
                 pipeline
                         .apply(Create.of(getReadWithRingRange(physRR), getReadWithRingRange(mathRR, logicRR)))
                         .apply(
-                                AstraIO.<Scientist>readAll().withCoder(SerializableCoder.of(Scientist.class)));
+                                AstraDbIO.<Scientist>readAll().withCoder(SerializableCoder.of(Scientist.class)));
 
         PCollection<KV<String, Integer>> mapped =
                 output.apply(
@@ -303,7 +300,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
 
         PCollection<Scientist> output =
                 pipeline.apply(
-                        AstraIO.<Scientist>read()
+                        AstraDbIO.<Scientist>read()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)
@@ -336,7 +333,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
 
         PCollection<Scientist> output =
                 pipeline.apply(
-                        AstraIO.<Scientist>read()
+                        AstraDbIO.<Scientist>read()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)
@@ -374,7 +371,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
         pipeline
                 .apply(Create.of(data))
                 .apply(
-                        AstraIO.<ScientistWrite>write()
+                        AstraDbIO.<ScientistWrite>write()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)
@@ -435,7 +432,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
         SerializableFunction<Session, Mapper> factory = new NOOPMapperFactory();
 
         pipeline.apply(
-                AstraIO.<String>read()
+                AstraDbIO.<String>read()
                         .withToken(getToken())
                         .withSecureConnectBundle(getSecureConnectBundleFile())
                         .withKeyspace(CASSANDRA_KEYSPACE)
@@ -457,7 +454,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
         pipeline
                 .apply(Create.of(""))
                 .apply(
-                        AstraIO.<String>write()
+                        AstraDbIO.<String>write()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)
@@ -477,7 +474,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
         pipeline
                 .apply(Create.of(""))
                 .apply(
-                        AstraIO.<String>delete()
+                        AstraDbIO.<String>delete()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)
@@ -507,7 +504,7 @@ public class AstraIOTest extends AbstractAstraDbTest implements Serializable {
         pipeline
                 .apply(Create.of(einstein))
                 .apply(
-                        AstraIO.<Scientist>delete()
+                        AstraDbIO.<Scientist>delete()
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureConnectBundleFile())
                                 .withKeyspace(CASSANDRA_KEYSPACE)

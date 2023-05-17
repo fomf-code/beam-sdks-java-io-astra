@@ -1,4 +1,4 @@
-package org.apache.beam.sdk.io.astra.options;
+package org.apache.beam.sdk.io.astra.db.options;
 
 /*-
  * #%L
@@ -43,4 +43,9 @@ public interface AstraDbOptions extends PipelineOptions  {
     @Validation.Required
     String getKeyspace();
     void setKeyspace(String keyspace);
+
+    @Description("Timeout for Connectivity in milliseconds")
+    int getConnectTimeout();
+    void setConnectTimeout(int connectTimeout);
+
 }

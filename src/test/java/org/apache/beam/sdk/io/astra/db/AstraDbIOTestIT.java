@@ -1,7 +1,8 @@
-package org.apache.beam.sdk.io.astra;
+package org.apache.beam.sdk.io.astra.db;
 
 import org.apache.beam.sdk.coders.SerializableCoder;
-import org.apache.beam.sdk.io.astra.options.AstraDbReadOptions;
+import org.apache.beam.sdk.io.astra.AbstractAstraTest;
+import org.apache.beam.sdk.io.astra.db.options.AstraDbReadOptions;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.PipelineOptionsValidator;
@@ -27,10 +28,10 @@ import java.io.File;
  * "--token=AstraCS:uZclXTYecCAqP....","--keyspace=demo"]'  \
  *   -DintegrationTestRunner=direct
  */
-public class AstraIOTestIT extends AbstractAstraDbTest {
+public class AstraDbIOTestIT extends AbstractAstraTest {
 
     /** Logger for the Class. */
-    private static final Logger LOG = LoggerFactory.getLogger(AstraIOTestIT.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AstraDbIOTestIT.class);
 
     private static final long NUM_ROWS = 22L;
 
@@ -54,16 +55,16 @@ public class AstraIOTestIT extends AbstractAstraDbTest {
 
     @Test
     public void testRead() throws Exception {
-        PCollection<AstraIOTest.Scientist> output =
+        PCollection<AstraDbIOTest.Scientist> output =
                 pipelineRead.apply(
-                        AstraIO.<AstraIOTest.Scientist>read()
+                        AstraDbIO.<AstraDbIOTest.Scientist>read()
                                 .withToken(astraOptions.getAstraToken())
                                 .withSecureConnectBundle(new File(astraOptions.getAstraSecureConnectBundle()))
                                 .withKeyspace(astraOptions.getKeyspace())
                                 .withTable(astraOptions.getTable())
                                 .withMinNumberOfSplits(50)
-                                .withCoder(SerializableCoder.of(AstraIOTest.Scientist.class))
-                                .withEntity(AstraIOTest.Scientist.class));
+                                .withCoder(SerializableCoder.of(AstraDbIOTest.Scientist.class))
+                                .withEntity(AstraDbIOTest.Scientist.class));
         PAssert.thatSingleton(output.apply("Count", Count.globally())).isEqualTo(NUM_ROWS);
         pipelineRead.run();
     }

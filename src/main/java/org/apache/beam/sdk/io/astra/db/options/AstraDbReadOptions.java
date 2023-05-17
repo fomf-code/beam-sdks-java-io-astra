@@ -1,4 +1,4 @@
-package org.apache.beam.sdk.io.astra.options;
+package org.apache.beam.sdk.io.astra.db.options;
 
 /*-
  * #%L
@@ -32,5 +32,17 @@ public interface AstraDbReadOptions extends AstraDbOptions {
     @Validation.Required
     String getTable();
     void setTable(String table);
+
+    @Description("Timeout for Read in milliseconds")
+    int getReadTimeout();
+    void setReadTimeout(int connectTimeout);
+
+    @Description("Consistency Level for Read")
+    String getConsistencyLevel();
+    void setConsistencyLevel(String consistencyLevel);
+
+    @Description("Cql Query")
+    String getQuery();
+    void setQuery(String cqlQueryToExecute);
 
 }

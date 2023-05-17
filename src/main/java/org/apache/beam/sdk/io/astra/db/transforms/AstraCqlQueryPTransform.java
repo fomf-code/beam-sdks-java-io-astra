@@ -1,4 +1,4 @@
-package org.apache.beam.sdk.io.astra.transforms;
+package org.apache.beam.sdk.io.astra.db.transforms;
 
 /*-
  * #%L
@@ -21,7 +21,8 @@ package org.apache.beam.sdk.io.astra.transforms;
  */
 
 import com.datastax.driver.core.ConsistencyLevel;
-import org.apache.beam.sdk.io.astra.ConnectionManager;
+import org.apache.beam.sdk.io.astra.db.AstraDbConnectionManager;
+import org.apache.beam.sdk.io.astra.db.options.AstraDbOptions;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.values.PCollection;
@@ -41,7 +42,17 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
     /**
      * Logger
      */
-    private static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AstraDbConnectionManager.class);
+
+    /**
+     * Execute a CQL query
+     *
+     * @param options
+     *      pipeline Options
+     */
+    public AstraCqlQueryPTransform(AstraDbOptions options, String cql) {
+        this(options.getAstraToken(), new File(options.getAstraSecureConnectBundle()), options.getKeyspace(), cql);
+    }
 
     /**
      * Execute a CQL query
@@ -52,7 +63,7 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      */
     public AstraCqlQueryPTransform(String token, File secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
-        ConnectionManager
+        AstraDbConnectionManager
                 .getInstance()
                 .getSession(
                         ValueProvider.StaticValueProvider.of(token),
@@ -74,7 +85,7 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      */
     public AstraCqlQueryPTransform(String token, byte[] secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
-        ConnectionManager
+        AstraDbConnectionManager
                 .getInstance()
                 .getSession(
                         ValueProvider.StaticValueProvider.of(token),
