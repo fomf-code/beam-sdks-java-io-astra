@@ -7,6 +7,7 @@
   <name>Beam SDK for Astra</name>
   <packaging>jar</packaging>
   <version>0.2-SNAPSHOT</version>
+  <url>https://github.com/clun/beam-sdks-java-io-astra</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,12 +29,15 @@
     <version.maven.plugin.dependency>3.5.0</version.maven.plugin.dependency>
     <version.maven.plugin.enforcer>3.3.0</version.maven.plugin.enforcer>
     <version.maven.plugin.exec>1.6.0</version.maven.plugin.exec>
+    <version.maven.plugin.gpg>3.0.1</version.maven.plugin.gpg>
     <version.maven.plugin.jar>3.3.0</version.maven.plugin.jar>
     <version.maven.plugin.javadoc>3.4.1</version.maven.plugin.javadoc>
     <version.maven.plugin.license>2.0.0</version.maven.plugin.license>
+    <version.maven.plugin.nexus>1.6.8</version.maven.plugin.nexus>
     <version.maven.plugin.release>2.5.2</version.maven.plugin.release>
     <version.maven.plugin.resources>3.3.1</version.maven.plugin.resources>
     <version.maven.plugin.shade>3.4.1</version.maven.plugin.shade>
+    <version.maven.plugin.source>2.2.1</version.maven.plugin.source>
     <version.maven.plugin.surefire>2.22.2</version.maven.plugin.surefire>
   </properties>
 
@@ -135,6 +139,32 @@
         <configuration>
           <source>${maven.plugin.compiler.source}</source>
           <target>${maven.plugin.compiler.target}</target>
+          <showWarnings>false</showWarnings>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>${version.maven.plugin.source}</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>${version.maven.plugin.release}</version>
+        <configuration>
+          <tagNameFormat>@{project.version}</tagNameFormat>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+          <useReleaseProfile>false</useReleaseProfile>
+          <releaseProfiles>release</releaseProfiles>
+          <goals>deploy</goals>
         </configuration>
       </plugin>
 
@@ -142,6 +172,25 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>${version.maven.plugin.dependency}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>${version.maven.plugin.nexus}</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>false</autoReleaseAfterClose>
+          <skipLocalStaging>true</skipLocalStaging>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>${version.maven.plugin.gpg}</version>
       </plugin>
 
       <plugin>
@@ -195,6 +244,29 @@
     </plugins>
 
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
   <organization>
     <name>DataStax</name>
