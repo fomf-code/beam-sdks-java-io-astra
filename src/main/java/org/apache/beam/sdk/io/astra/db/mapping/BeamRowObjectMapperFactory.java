@@ -21,41 +21,36 @@ package org.apache.beam.sdk.io.astra.db.mapping;
  */
 
 import com.datastax.driver.core.Session;
-import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 
 /**
- * The CassandraRowMapperFactory is a factory method used to inject the {@link CassandraRowMapperFn}
- * into the CassandaIO.
- *
- * @see CassandraRowMapperFn
+ * Will Convert a Cassandra Row into a Beam Row.
  */
-public class CassandraRowMapperFactory implements SerializableFunction<Session, Mapper> {
+public class BeamRowObjectMapperFactory implements SerializableFunction<Session, Mapper> {
 
     /**
-     * Current keyspace
+     * Current Cassandra Keyspace.
      */
-    private final ValueProvider<String> keyspace;
+    private final String keyspace;
 
     /**
-     * Current Table
+     * Current Cassandra Table.
      */
-    private final ValueProvider<String> table;
+    private final String table;
 
     /**
-     * Default constructor
+     * Constructor.
      *
      * @param cassandraTable the Cassandra table to read from.
      * @param cassandraKeyspace the Cassandra keyspace to read from.
      */
-    public CassandraRowMapperFactory(
-            ValueProvider<String> cassandraTable, ValueProvider<String> cassandraKeyspace) {
+    public BeamRowObjectMapperFactory(String cassandraKeyspace, String cassandraTable) {
         this.keyspace = cassandraKeyspace;
         this.table = cassandraTable;
     }
 
     @Override
     public Mapper apply(Session session) {
-        return new CassandraRowMapperFn(session, keyspace, table);
+        return new BeamRowObjectMapperFn(session, keyspace, table);
     }
 }

@@ -54,6 +54,12 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Read Data coming from Cassandra.
+ *
+ * @param <T>
+ *        type entity manipulated
+ */
 class ReadFn<T> extends DoFn<Read<T>, T> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ReadFn.class);
@@ -72,6 +78,7 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
               .getTable(read.table().get()).getPartitionKey().stream()
               .map(ColumnMetadata::getName)
               .collect(Collectors.joining(","));
+
 
       String query = generateRangeQuery(read, partitionKey, read.ringRanges() != null);
       PreparedStatement preparedStatement = session.prepare(query);

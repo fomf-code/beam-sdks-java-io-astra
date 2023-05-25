@@ -1,13 +1,30 @@
 package org.apache.beam.sdk.io.astra.db;
 
-import com.datastax.driver.core.*;
-import com.datastax.driver.mapping.annotations.*;
+import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TypeCodec;
+import com.datastax.driver.mapping.annotations.ClusteringColumn;
+import com.datastax.driver.mapping.annotations.Column;
+import com.datastax.driver.mapping.annotations.Computed;
+import com.datastax.driver.mapping.annotations.PartitionKey;
+import com.datastax.driver.mapping.annotations.Table;
 import org.apache.beam.sdk.coders.SerializableCoder;
 import org.apache.beam.sdk.io.astra.AbstractAstraTest;
+import org.apache.beam.sdk.io.astra.db.mapping.BeamRowObjectMapperFactory;
 import org.apache.beam.sdk.io.astra.db.mapping.Mapper;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;
-import org.apache.beam.sdk.transforms.*;
+import org.apache.beam.sdk.transforms.Count;
+import org.apache.beam.sdk.transforms.Create;
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.MapElements;
+import org.apache.beam.sdk.transforms.PTransform;
+import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.SerializableFunction;
+import org.apache.beam.sdk.transforms.SimpleFunction;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Objects;
@@ -22,11 +39,16 @@ import org.junit.runners.JUnit4;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -53,19 +75,18 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     public transient TestPipeline pipeline = TestPipeline.create();
 
     @BeforeClass
-    public static void beforeClass() throws Exception {
+    public static void beforeClass() {
         session = getSession();
         cluster = session.getCluster();
         insertData();
     }
 
     @AfterClass
-    public static void afterClass()
-    throws InterruptedException, IOException {
+    public static void afterClass() {
        cleanup();
     }
 
-    private static void insertData() throws Exception {
+    private static void insertData() {
         LOG.info("Create Cassandra tables");
         session.execute(
                 String.format(
@@ -150,6 +171,37 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                         });
         pipeline.run();
     }
+
+    @Test
+    public void testReadWithBeamObjectMapping() {
+
+        SerializableFunction<Session, Mapper> beamRowMapperFactory =
+                new BeamRowObjectMapperFactory(CASSANDRA_KEYSPACE, CASSANDRA_TABLE);
+
+        PCollection<String> output = pipeline.apply("Read From Cassandra",
+                        AstraDbIO.<org.apache.beam.sdk.values.Row>read()
+                                .withToken(getToken())
+                                .withSecureConnectBundle(getSecureConnectBundleFile())
+                                .withKeyspace(CASSANDRA_KEYSPACE)
+                                .withTable(CASSANDRA_TABLE)
+                                .withMinNumberOfSplits(5)
+                                .withMapperFactoryFn(beamRowMapperFactory)
+                                .withCoder(SerializableCoder.of(org.apache.beam.sdk.values.Row.class))
+                                .withEntity(org.apache.beam.sdk.values.Row.class))
+                .apply("Show", ParDo.of(new ShowRow()));
+
+        pipeline.run();
+    }
+
+    public static class ShowRow extends DoFn<org.apache.beam.sdk.values.Row, String> {
+
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            LOG.info("Row: {}", c.element().toString());
+            c.output(c.element().toString());
+        }
+    }
+
 
     @Test
     public void testRead() throws Exception {

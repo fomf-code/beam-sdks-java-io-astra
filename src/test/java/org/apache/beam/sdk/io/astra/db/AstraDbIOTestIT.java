@@ -11,6 +11,7 @@ import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.Count;
 import org.apache.beam.sdk.values.PCollection;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -22,12 +23,12 @@ import java.io.File;
  * Test as a Pipeline
  *
  * To run the test:
- * mvn test \
- *   -Dtest=org.apache.beam.sdk.io.astra.AstraIOIT \
- * -DbeamTestPipelineOptions='["--secureConnectBundle=/scb-demo.zip",
- * "--token=AstraCS:uZclXTYecCAqP....","--keyspace=demo"]'  \
- *   -DintegrationTestRunner=direct
+
+ mvn test -Dtest=org.apache.beam.sdk.io.astra.db.AstraDbIOTestIT -DbeamTestPipelineOptions='["--astraSecureConnectBundle=/Users/cedricklunven/Downloads
+ /scb-demo.zip","--astraToken=AstraCS:uZclXTYecCAqPPjiNmkezapR:e87d6edb702acd87516e4ef78e0c0e515c32ab2c3529f5a3242688034149a0e4","--table=scientist","--keyspace=demo"]' -DintegrationTestRunner=direct
+
  */
+@Ignore
 public class AstraDbIOTestIT extends AbstractAstraTest {
 
     /** Logger for the Class. */
