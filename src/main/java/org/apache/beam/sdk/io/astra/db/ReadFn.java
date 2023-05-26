@@ -38,15 +38,20 @@ package org.apache.beam.sdk.io.astra.db;
  */
 
 import com.datastax.driver.core.ColumnMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.datastax.driver.core.exceptions.SyntaxError;
 import org.apache.beam.sdk.io.astra.db.AstraDbIO.Read;
 import org.apache.beam.sdk.io.astra.db.mapping.Mapper;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -62,8 +67,10 @@ import org.slf4j.LoggerFactory;
  */
 class ReadFn<T> extends DoFn<Read<T>, T> {
 
+  /** Logger for the class. */
   private static final Logger LOG = LoggerFactory.getLogger(ReadFn.class);
 
+  /** Reader function. */
   public ReadFn() {
     super();
   }
@@ -73,17 +80,17 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
     try {
       Session session = AstraDbConnectionManager.getInstance().getSession(read);
       Mapper<T> mapper = read.mapperFactoryFn().apply(session);
-      String partitionKey =
-          session.getCluster().getMetadata().getKeyspace(read.keyspace().get())
-              .getTable(read.table().get()).getPartitionKey().stream()
+      LOG.debug("ReadFn : Reading from {}.{}", read.keyspace().get(), read.table().get());
+      Metadata          clusterMetadata = session.getCluster().getMetadata();
+      KeyspaceMetadata  keyspaceMetadata = clusterMetadata.getKeyspace(read.keyspace().get());
+      TableMetadata     tableMetadata = keyspaceMetadata .getTable(read.table().get());
+      String partitionKey = tableMetadata.getPartitionKey().stream()
               .map(ColumnMetadata::getName)
               .collect(Collectors.joining(","));
 
-
       String query = generateRangeQuery(read, partitionKey, read.ringRanges() != null);
       PreparedStatement preparedStatement = session.prepare(query);
-      Set<RingRange> ringRanges =
-          read.ringRanges() == null ? Collections.emptySet() : read.ringRanges().get();
+      Set<RingRange> ringRanges = read.ringRanges() == null ? Collections.emptySet() : read.ringRanges().get();
 
       for (RingRange rr : ringRanges) {
         Token startToken = session.getCluster().getMetadata().newToken(rr.getStart().toString());
@@ -115,8 +122,13 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
         ResultSet rs = session.execute(preparedStatement.bind());
         outputResults(rs, receiver, mapper);
       }
+    } catch(SyntaxError se) {
+        // The last token is not a valid token, so we need to wrap around
+        // mismatched input 'AND' expecting EOF (...(person_name) from beam.scientist [AND]...)
+        LOG.debug("SyntaxError : {}", se.getMessage());
     } catch (Exception ex) {
-      LOG.info("Non filtered query could raise an expected error for last chunk: {}", ex.getMessage());
+        LOG.error("Cannot process read operation against Cassandra", ex);
+        throw new IllegalStateException("Cannot process read operation against Cassandra", ex);
     }
   }
 

@@ -95,13 +95,15 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
         if (session.isClosed()) {
             throw new IllegalStateException("Session is already closed");
         }
-        KeyspaceMetadata keyspaceMetaData = session.getCluster().getMetadata().getKeyspace("beam");
+        KeyspaceMetadata keyspaceMetaData = session
+                .getCluster()
+                .getMetadata().getKeyspace(keyspace);
         if (keyspaceMetaData == null) {
             throw new IllegalStateException("Keyspace " + keyspace + " does not exist");
         }
         this.tableMetadata = keyspaceMetaData.getTable(table);
         if (tableMetadata == null) {
-            throw new IllegalStateException("Table " + table + " does not exist");
+            throw new IllegalStateException("Table " + table + " does not exist for keyspace " + keyspace + "");
         }
         this.primaryKeysColumnNames = tableMetadata.getPrimaryKey().stream()
                 .map(ColumnMetadata::getName)
