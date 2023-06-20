@@ -2,6 +2,8 @@ package org.apache.beam.sdk.io.astra.db;
 
 import org.apache.beam.sdk.coders.SerializableCoder;
 import org.apache.beam.sdk.io.astra.AbstractAstraTest;
+import org.apache.beam.sdk.io.astra.db.scientist.Scientist;
+import org.apache.beam.sdk.io.astra.db.scientist.ScientistMapperFactoryFn;
 import org.apache.beam.sdk.io.astra.db.options.AstraDbReadOptions;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -14,10 +16,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
 
 /**
  * Test as a Pipeline
@@ -30,9 +28,6 @@ import java.io.File;
  */
 @Ignore
 public class AstraDbIOTestIT extends AbstractAstraTest {
-
-    /** Logger for the Class. */
-    private static final Logger LOG = LoggerFactory.getLogger(AstraDbIOTestIT.class);
 
     private static final long NUM_ROWS = 22L;
 
@@ -55,17 +50,18 @@ public class AstraDbIOTestIT extends AbstractAstraTest {
     }
 
     @Test
-    public void testRead() throws Exception {
-        PCollection<AstraDbIOTest.Scientist> output =
+    public void testRead()  {
+        PCollection<Scientist> output =
                 pipelineRead.apply(
-                        AstraDbIO.<AstraDbIOTest.Scientist>read()
+                        AstraDbIO.<Scientist>read()
                                 .withToken(astraOptions.getAstraToken())
-                                .withSecureConnectBundle(new File(astraOptions.getAstraSecureConnectBundle()))
+                                .withSecureConnectBundle(astraOptions.getAstraSecureConnectBundle())
                                 .withKeyspace(astraOptions.getKeyspace())
                                 .withTable(astraOptions.getTable())
                                 .withMinNumberOfSplits(50)
-                                .withCoder(SerializableCoder.of(AstraDbIOTest.Scientist.class))
-                                .withEntity(AstraDbIOTest.Scientist.class));
+                                .withMapperFactoryFn(new ScientistMapperFactoryFn())
+                                .withCoder(SerializableCoder.of(Scientist.class))
+                                .withEntity(Scientist.class));
         PAssert.thatSingleton(output.apply("Count", Count.globally())).isEqualTo(NUM_ROWS);
         pipelineRead.run();
     }

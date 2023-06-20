@@ -37,27 +37,29 @@ package org.apache.beam.sdk.io.astra.db;
  * #L%
  */
 
-import com.datastax.driver.core.ColumnMetadata;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.Token;
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import com.datastax.driver.core.exceptions.SyntaxError;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.metadata.token.Token;
+import com.datastax.oss.driver.api.core.servererrors.SyntaxError;
+import com.datastax.oss.driver.internal.core.metadata.token.Murmur3Token;
 import org.apache.beam.sdk.io.astra.db.AstraDbIO.Read;
-import org.apache.beam.sdk.io.astra.db.mapping.Mapper;
+import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
+import org.apache.beam.sdk.io.astra.db.transforms.split.RingRange;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.math.BigInteger;
+import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Read Data coming from Cassandra.
@@ -73,54 +75,61 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
   /** Reader function. */
   public ReadFn() {
     super();
+    LOG.info("Starter Reader");
   }
 
   @ProcessElement
   public void processElement(@Element Read<T> read, OutputReceiver<T> receiver) {
     try {
-      Session session = AstraDbConnectionManager.getInstance().getSession(read);
-      Mapper<T> mapper = read.mapperFactoryFn().apply(session);
-      LOG.debug("ReadFn : Reading from {}.{}", read.keyspace().get(), read.table().get());
-      Metadata          clusterMetadata = session.getCluster().getMetadata();
-      KeyspaceMetadata  keyspaceMetadata = clusterMetadata.getKeyspace(read.keyspace().get());
-      TableMetadata     tableMetadata = keyspaceMetadata .getTable(read.table().get());
+      if (read.ringRanges() != null) {
+        LOG.debug("Read Table '{}.{}' ({} range)", read.keyspace().get(), read.table().get(), read.ringRanges().get().size());
+      } else {
+        LOG.debug("Read Table '{}.{}'", read.keyspace().get(), read.table().get());
+      }
+      CqlSession cqlSession = CqlSessionHolder.getCqlSession(read);
+      AstraDbMapper<T> mapper = read.mapperFactoryFn().apply(cqlSession);
+      Metadata clusterMetadata = cqlSession.getMetadata();
+      KeyspaceMetadata keyspaceMetadata = clusterMetadata.getKeyspace(read.keyspace().get()).get();
+      TableMetadata tableMetadata = keyspaceMetadata.getTable(read.table().get()).get();
       String partitionKey = tableMetadata.getPartitionKey().stream()
               .map(ColumnMetadata::getName)
+              .map(CqlIdentifier::toString)
               .collect(Collectors.joining(","));
 
       String query = generateRangeQuery(read, partitionKey, read.ringRanges() != null);
-      PreparedStatement preparedStatement = session.prepare(query);
-      Set<RingRange> ringRanges = read.ringRanges() == null ? Collections.emptySet() : read.ringRanges().get();
+      PreparedStatement preparedStatement = cqlSession.prepare(query);
 
-      for (RingRange rr : ringRanges) {
-        Token startToken = session.getCluster().getMetadata().newToken(rr.getStart().toString());
-        Token endToken = session.getCluster().getMetadata().newToken(rr.getEnd().toString());
-        if (rr.isWrapping()) {
-          // A wrapping range is one that overlaps from the end of the partitioner range and its
-          // start (ie : when the start token of the split is greater than the end token)
-          // We need to generate two queries here : one that goes from the start token to the end
-          // of
-          // the partitioner range, and the other from the start of the partitioner range to the
-          // end token of the split.
-          outputResults(
-              session.execute(getLowestSplitQuery(read, partitionKey, rr.getEnd())),
-              receiver,
-              mapper);
-          outputResults(
-              session.execute(getHighestSplitQuery(read, partitionKey, rr.getStart())),
-              receiver,
-              mapper);
+      if (read.ringRanges() == null || read.ringRanges().get().isEmpty()) {
+        // No Range, executing the full thing
+        if (read.query() != null) {
+          LOG.info("Executing User Query: {}", read.query().get());
+          outputResults(cqlSession.execute(read.query().get()), receiver, mapper);
         } else {
-          ResultSet rs =
-              session.execute(
-                  preparedStatement.bind().setToken(0, startToken).setToken(1, endToken));
-          outputResults(rs, receiver, mapper);
+          LOG.info("Executing Table Full Scan Query");
+          outputResults(cqlSession.execute(String.format("SELECT * FROM %s.%s",
+                  read.keyspace().get(),
+                  read.table().get())), receiver, mapper);
         }
-      }
+      } else {
+        for (RingRange rr : read.ringRanges().get()) {
+          Token startToken = new Murmur3Token(rr.getStart().longValue());
+          Token endToken = new Murmur3Token(rr.getEnd().longValue());
+          if (rr.isWrapping()) {
+            ResultSet rsLow = cqlSession.execute(getLowestSplitQuery(read, partitionKey, rr.getEnd()));
+            LOG.debug("Anything below [{}] get you {} items", rr.getEnd(), + rsLow.getAvailableWithoutFetching());
+            outputResults(rsLow, receiver, mapper);
 
-      if (read.ringRanges() == null) {
-        ResultSet rs = session.execute(preparedStatement.bind());
-        outputResults(rs, receiver, mapper);
+            ResultSet rsHigh = cqlSession.execute(getHighestSplitQuery(read, partitionKey, rr.getStart()));
+            LOG.debug("Anything above [{}] get you {} items", rr.getStart(), + rsHigh.getAvailableWithoutFetching());
+            outputResults(rsHigh, receiver,mapper);
+          } else {
+            ResultSet rsRange = cqlSession.execute(preparedStatement.bind()
+                    .setToken(0, startToken)
+                    .setToken(1, endToken));
+            LOG.debug("Range[{}-{}] gets you {} items", rr.getStart().longValue(), rr.getEnd().longValue(), rsRange.getAvailableWithoutFetching());
+            outputResults(rsRange, receiver, mapper);
+          }
+        }
       }
     } catch(SyntaxError se) {
         // The last token is not a valid token, so we need to wrap around
@@ -132,8 +141,7 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
     }
   }
 
-  private static <T> void outputResults(
-      ResultSet rs, OutputReceiver<T> outputReceiver, Mapper<T> mapper) {
+  private static <T> void outputResults(ResultSet rs, OutputReceiver<T> outputReceiver, AstraDbMapper<T> mapper) {
     Iterator<T> iter = mapper.map(rs);
     while (iter.hasNext()) {
       T n = iter.next();
@@ -143,27 +151,25 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
 
   private static String getHighestSplitQuery(
       Read<?> spec, String partitionKey, BigInteger highest) {
-    String highestClause = String.format("(token(%s) >= %d)", partitionKey, highest);
+    String highestClause = String.format("(token(%s) >= %d)",
+            partitionKey, highest.subtract(new BigInteger("1")), partitionKey);
     String finalHighQuery =
         (spec.query() == null)
             ? buildInitialQuery(spec, true) + highestClause
             : spec.query() + " AND " + highestClause;
-    LOG.debug("CassandraIO generated a wrapAround query : {}", finalHighQuery);
     return finalHighQuery;
   }
 
   private static String getLowestSplitQuery(Read<?> spec, String partitionKey, BigInteger lowest) {
-    String lowestClause = String.format("(token(%s) < %d)", partitionKey, lowest);
+    String lowestClause = String.format(" (token(%s) < %d) ", partitionKey, lowest.add(new BigInteger("1")));
     String finalLowQuery =
         (spec.query() == null)
             ? buildInitialQuery(spec, true) + lowestClause
             : spec.query() + " AND " + lowestClause;
-    LOG.debug("CassandraIO generated a wrapAround query : {}", finalLowQuery);
     return finalLowQuery;
   }
 
-  private static String generateRangeQuery(
-      Read<?> spec, String partitionKey, Boolean hasRingRange) {
+  private static String generateRangeQuery(Read<?> spec, String partitionKey, Boolean hasRingRange) {
     final String rangeFilter =
         hasRingRange
             ? Joiner.on(" AND ")
@@ -173,7 +179,6 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
                     String.format("(token(%s) < ?)", partitionKey))
             : "";
     final String combinedQuery = buildInitialQuery(spec, hasRingRange) + rangeFilter;
-    LOG.debug("CassandraIO generated query : {}", combinedQuery);
     return combinedQuery;
   }
 

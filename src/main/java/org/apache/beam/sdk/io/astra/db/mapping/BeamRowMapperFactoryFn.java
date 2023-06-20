@@ -20,13 +20,15 @@ package org.apache.beam.sdk.io.astra.db.mapping;
  * #L%
  */
 
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import org.apache.beam.sdk.transforms.SerializableFunction;
+import org.apache.beam.sdk.values.Row;
 
 /**
  * Will Convert a Cassandra Row into a Beam Row.
  */
-public class BeamRowObjectMapperFactory implements SerializableFunction<Session, Mapper> {
+public class BeamRowMapperFactoryFn implements
+        SerializableFunction<CqlSession, AstraDbMapper<Row>> {
 
     /**
      * Current Cassandra Keyspace.
@@ -44,13 +46,13 @@ public class BeamRowObjectMapperFactory implements SerializableFunction<Session,
      * @param cassandraTable the Cassandra table to read from.
      * @param cassandraKeyspace the Cassandra keyspace to read from.
      */
-    public BeamRowObjectMapperFactory(String cassandraKeyspace, String cassandraTable) {
+    public BeamRowMapperFactoryFn(String cassandraKeyspace, String cassandraTable) {
         this.keyspace = cassandraKeyspace;
         this.table = cassandraTable;
     }
 
     @Override
-    public Mapper apply(Session session) {
-        return new BeamRowObjectMapperFn(session, keyspace, table);
+    public AstraDbMapper apply(CqlSession session) {
+        return new BeamRowDbMapper(session, keyspace, table);
     }
 }

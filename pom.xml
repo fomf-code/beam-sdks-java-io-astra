@@ -14,10 +14,10 @@
     <maven.plugin.compiler.source>11</maven.plugin.compiler.source>
     <maven.plugin.compiler.target>11</maven.plugin.compiler.target>
     <!-- Beam -->
-    <beam.version>2.46.0</beam.version>
+    <beam.version>2.48.0</beam.version>
     <!-- Astra -->
-    <astra-sdk.version>0.5</astra-sdk.version>
-    <cassandra-driver-oss.version>3.11.3</cassandra-driver-oss.version>
+    <astra-sdk.version>0.6</astra-sdk.version>
+    <cassandra-driver4x.version>4.16.0</cassandra-driver4x.version>
     <!-- Third Parties -->
     <slf4j.version>2.0.7</slf4j.version>
     <logback.version>1.4.7</logback.version>
@@ -50,16 +50,21 @@
       <version>${beam.version}</version>
     </dependency>
 
-    <!-- Cassandra -->
+    <!-- Cassandra Driver 4x  -->
     <dependency>
-      <groupId>com.datastax.cassandra</groupId>
-      <artifactId>cassandra-driver-core</artifactId>
-      <version>${cassandra-driver-oss.version}</version>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>${cassandra-driver4x.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.datastax.cassandra</groupId>
-      <artifactId>cassandra-driver-mapping</artifactId>
-      <version>${cassandra-driver-oss.version}</version>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-query-builder</artifactId>
+      <version>${cassandra-driver4x.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-mapper-runtime</artifactId>
+      <version>${cassandra-driver4x.version}</version>
     </dependency>
 
     <!-- AutoValue -->
@@ -140,6 +145,18 @@
           <source>${maven.plugin.compiler.source}</source>
           <target>${maven.plugin.compiler.target}</target>
           <showWarnings>false</showWarnings>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>com.google.auto.value</groupId>
+              <artifactId>auto-value</artifactId>
+              <version>${auto-value.version}</version>
+            </path>
+            <path>
+              <groupId>com.datastax.oss</groupId>
+              <artifactId>java-driver-mapper-processor</artifactId>
+              <version>${cassandra-driver4x.version}</version>
+            </path>
+          </annotationProcessorPaths>
         </configuration>
       </plugin>
 
@@ -168,6 +185,7 @@
         </configuration>
       </plugin>
 
+      <!--
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -181,6 +199,7 @@
           </execution>
         </executions>
       </plugin>
+      -->
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

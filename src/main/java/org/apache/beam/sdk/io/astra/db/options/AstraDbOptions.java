@@ -51,7 +51,7 @@ public interface AstraDbOptions extends PipelineOptions  {
      */
     @Description("Location of secure connect bundle, depending on environment could be path or secret resource id")
     @Validation.Required
-    String getAstraSecureConnectBundle();
+    byte[] getAstraSecureConnectBundle();
 
     /**
      * Update the Astra secure bundle
@@ -59,7 +59,8 @@ public interface AstraDbOptions extends PipelineOptions  {
      * @param path
      *      new value for Astra connection timeout
      */
-    void setAstraSecureConnectBundle(String path);
+    @SuppressWarnings("not used")
+    void setAstraSecureConnectBundle(byte[] path);
 
     /**
      * Access Astra Keyspace

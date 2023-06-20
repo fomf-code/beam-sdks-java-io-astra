@@ -20,19 +20,25 @@ package org.apache.beam.sdk.io.astra.db.mapping;
  * #L%
  */
 
-import com.datastax.driver.core.ColumnDefinitions;
-import com.datastax.driver.core.ColumnMetadata;
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TableMetadata;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.type.CqlVectorType;
+import com.datastax.oss.driver.api.core.type.DataType;
+import com.datastax.oss.driver.api.core.type.ListType;
+import com.datastax.oss.driver.api.core.type.MapType;
+import com.datastax.oss.driver.api.core.type.SetType;
+import com.datastax.oss.driver.api.core.type.TupleType;
+import com.datastax.oss.driver.api.core.type.UserDefinedType;
+import com.datastax.oss.protocol.internal.ProtocolConstants;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.schemas.Schema.Field;
 import org.apache.beam.sdk.schemas.Schema.FieldType;
 import org.apache.beam.sdk.values.Row;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -45,18 +51,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Mapping From Cassandra Row to Beam Row.
  */
-public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
+public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
 
     /**
      * Cassandra Session.
      */
-    private final Session session;
+    private final CqlSession session;
 
     /**
      * Current table.
@@ -78,58 +85,67 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
      */
     private final Set<String> primaryKeysColumnNames;
 
+    List<ColumnDefinition> columnDefinitions;
+
+    Schema beamSchema;
+
     /**
      * Constructor used by AstraDbRowMapperFactory.
      *
-     * @see BeamRowObjectMapperFactory
+     * @see BeamRowMapperFactoryFn
      * @see Row
      *
      * @param session the Cassandra session.
      * @param keyspace the Cassandra keyspace to read data from.
      * @param table the Cassandra table to read from.
      */
-    public BeamRowObjectMapperFn(Session session, String keyspace, String table) {
+    public BeamRowDbMapper(CqlSession session, String keyspace, String table) {
         this.session = session;
         this.keyspace = keyspace;
         this.table    = table;
         if (session.isClosed()) {
             throw new IllegalStateException("Session is already closed");
         }
+
         KeyspaceMetadata keyspaceMetaData = session
-                .getCluster()
-                .getMetadata().getKeyspace(keyspace);
-        if (keyspaceMetaData == null) {
-            throw new IllegalStateException("Keyspace " + keyspace + " does not exist");
-        }
-        this.tableMetadata = keyspaceMetaData.getTable(table);
-        if (tableMetadata == null) {
-            throw new IllegalStateException("Table " + table + " does not exist for keyspace " + keyspace + "");
-        }
-        this.primaryKeysColumnNames = tableMetadata.getPrimaryKey().stream()
+                .getMetadata().getKeyspace(keyspace)
+                .orElseThrow(()-> new IllegalStateException("Keyspace "
+                        + keyspace + " does not exist"));
+
+        this.tableMetadata = keyspaceMetaData
+                .getTable(table)
+                .orElseThrow(() -> new IllegalStateException("Table "
+                        + table + " does not exist for keyspace "
+                        + keyspace + ""));
+
+        this.primaryKeysColumnNames = tableMetadata.getPartitionKey().stream()
                 .map(ColumnMetadata::getName)
+                .map(id -> id.asCql(true))
                 .collect(Collectors.toSet());
+
+    }
+
+    @Override
+    public Row mapRow(com.datastax.oss.driver.api.core.cql.Row cassandraRow) {
+        List<Object> values = new ArrayList<>();
+        for (int i = 0; i < columnDefinitions.size(); i++) {
+            // Mapping Field to Field
+            DataType cassandraColumnType = columnDefinitions.get(i).getType();
+            Object columnValue = toBeamRowValue(cassandraRow.getObject(i), cassandraColumnType);
+            values.add(columnValue);
+        }
+        return Row.withSchema(beamSchema).addValues(values).build();
     }
 
     @Override
     public Iterator<Row> map(ResultSet resultSet) {
-        List<ColumnDefinitions.Definition> columnDefinitions =
-                resultSet.getColumnDefinitions().asList();
-
-        // Use Column MetaData to build a Schema for Beam
-        Schema beamSchema = toBeamSchema(columnDefinitions);
-
-        // Mapping Row to Row
+       columnDefinitions = StreamSupport
+                .stream(resultSet.getColumnDefinitions().spliterator(), false)
+                .collect(Collectors.toList());
+        beamSchema = toBeamSchema(columnDefinitions);
         List<Row> rows = new ArrayList<>();
-        for (com.datastax.driver.core.Row cassandraRow : resultSet) {
-            List<Object> values = new ArrayList<>();
-            for (int i = 0; i < columnDefinitions.size(); i++) {
-                // Mapping Field to Field
-                DataType cassandraColumnType = columnDefinitions.get(i).getType();
-                Object columnValue = toBeamRowValue(cassandraRow.getObject(i), cassandraColumnType);
-                values.add(columnValue);
-            }
-            Row row = Row.withSchema(beamSchema).addValues(values).build();
-            rows.add(row);
+        for (com.datastax.oss.driver.api.core.cql.Row cassandraRow : resultSet) {
+            rows.add(mapRow(cassandraRow));
         }
         return rows.iterator();
     }
@@ -146,30 +162,39 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
      * @return the beam compatible object.
      */
     private Object toBeamRowValue(Object object, DataType type) {
-        DataType.Name typeName = type.getName();
-        if (typeName == DataType.Name.LIST) {
-            DataType innerType = type.getTypeArguments().get(0);
+        if (type instanceof ListType) {
+            // Process LISTS
+            ListType listType = (ListType) type;
+            DataType innerType = listType.getElementType();
             List list = (List) object;
-            // Apply toBeamObject on all items.
             return list.stream()
                     .map(value -> toBeamObject(value, innerType))
                     .collect(Collectors.toList());
-        } else if (typeName == DataType.Name.MAP) {
-            DataType ktype = type.getTypeArguments().get(0);
-            DataType vtype = type.getTypeArguments().get(1);
+        } else if (type instanceof SetType) {
+            // Process with SETS
+            SetType setType = (SetType) type;
+            DataType innerType = setType.getElementType();
+            Set set = (Set) object;
+            return set.stream()
+                    .map(value -> toBeamObject(value, innerType))
+                    .collect(Collectors.toSet());
+        } else if (type instanceof MapType) {
+            // Processing with MAPS
+            MapType mapType = (MapType) type;
+            DataType kType = mapType.getKeyType();
+            DataType vType = mapType.getValueType();
             Set<Map.Entry> map = ((Map) object).entrySet();
             // Apply toBeamObject on both key and value.
             return map.stream().collect(
-                Collectors.toMap(e -> toBeamObject(e.getKey(), ktype), e -> toBeamObject(e.getValue(), vtype)));
-        } else if (typeName == DataType.Name.SET) {
-            DataType innerType = type.getTypeArguments().get(0);
-            List list = new ArrayList((Set) object);
-            // Apply toBeamObject on all items.
-            return list.stream().map(l -> toBeamObject(l, innerType)).collect(Collectors.toList());
-        } else {
-            // scalar and default
-            return toBeamObject(object, type);
+                    Collectors.toMap(e -> toBeamObject(e.getKey(), kType), e -> toBeamObject(e.getValue(), vType)));
+        } else if (type instanceof TupleType) {
+            throw new IllegalArgumentException("As of today there is no support of Tuple in Beam");
+        } else if (type instanceof UserDefinedType) {
+            throw new IllegalArgumentException("As of today there is no support of Custom Format in Beam");
+        } else if (type instanceof CqlVectorType) {
+
         }
+        return toBeamObject(object, type);
     }
 
     /**
@@ -179,15 +204,15 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
      *      list of Column
      * @return
      */
-    private Schema toBeamSchema(List<ColumnDefinitions.Definition> columnDefinitions) {
+    private Schema toBeamSchema(List<ColumnDefinition> columnDefinitions) {
         Schema.Builder beamSchemaBuilder = Schema.builder();
-        for(ColumnDefinitions.Definition colDefinition : columnDefinitions) {
+        for(ColumnDefinition colDefinition : columnDefinitions) {
             // Mapping Type including ARRAY and MAP when relevant
-            Field beamField = Field.of(colDefinition.getName(), toBeamRowType(colDefinition.getType()))
+            Field beamField = Field.of(colDefinition.getName().toString(), toBeamRowType(colDefinition.getType()))
                 // A field is nullable if not part of primary key
                 .withNullable(!primaryKeysColumnNames.contains(colDefinition.getName()))
                 // As a description we can provide the original cassandra type
-                .withDescription(colDefinition.getType().getName().name());
+                .withDescription(String.valueOf(colDefinition.getType().getProtocolCode()));
             beamSchemaBuilder.addField(beamField);
         }
         return beamSchemaBuilder.build();
@@ -197,52 +222,45 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
      * From Cassandra to Beam Type.
      */
     private FieldType toBeamRowType(DataType type) {
-        DataType.Name n = type.getName();
-        switch (n) {
-            case TIMESTAMP:
-            case DATE:
-                return FieldType.DATETIME;
-            case BLOB:
-                return FieldType.BYTES;
-            case BOOLEAN:
-                return FieldType.BOOLEAN;
-            case DECIMAL:
-                return FieldType.DECIMAL;
-            case DOUBLE:
-                return FieldType.DOUBLE;
-            case FLOAT:
-                return FieldType.FLOAT;
-            case INT:
-                return FieldType.INT32;
-            case VARINT:
-                return FieldType.DECIMAL;
-            case SMALLINT:
-                return FieldType.INT16;
-            case TINYINT:
-                return FieldType.BYTE;
-            case LIST:
-            case SET:
-                DataType innerType = type.getTypeArguments().get(0);
-                return FieldType.array(toBeamRowType(innerType));
-            case MAP:
-                DataType kDataType = type.getTypeArguments().get(0);
-                DataType vDataType = type.getTypeArguments().get(1);
-                FieldType k = toBeamRowType(kDataType);
-                FieldType v = toBeamRowType(vDataType);
-                return FieldType.map(k, v);
-            case VARCHAR:
-            case TEXT:
-            case INET:
-            case UUID:
-            case TIMEUUID:
-            case ASCII:
+        switch (type.getProtocolCode()) {
+
+            case ProtocolConstants.DataType.UUID:
+            case ProtocolConstants.DataType.VARCHAR:
+            case ProtocolConstants.DataType.ASCII:
+            case ProtocolConstants.DataType.TIMEUUID:
+            case ProtocolConstants.DataType.INET:
                 return FieldType.STRING;
-            case BIGINT:
-            case COUNTER:
-            case TIME:
+
+            case ProtocolConstants.DataType.VARINT:
+            case ProtocolConstants.DataType.DECIMAL:
+                return FieldType.DECIMAL;
+
+            case ProtocolConstants.DataType.COUNTER:
+            case ProtocolConstants.DataType.BIGINT:
+            case ProtocolConstants.DataType.TIME:
                 return FieldType.INT64;
+
+            case ProtocolConstants.DataType.DATE:
+            case ProtocolConstants.DataType.TIMESTAMP:
+                return FieldType.DATETIME;
+
+            case ProtocolConstants.DataType.DOUBLE:
+                return FieldType.DOUBLE;
+            case ProtocolConstants.DataType.FLOAT:
+                return FieldType.FLOAT;
+            case ProtocolConstants.DataType.INT:
+            case ProtocolConstants.DataType.DURATION:
+                return FieldType.INT32;
+            case ProtocolConstants.DataType.SMALLINT:
+                return FieldType.INT16;
+            case ProtocolConstants.DataType.TINYINT:
+                return FieldType.BYTE;
+            case ProtocolConstants.DataType.BLOB:
+                return FieldType.BYTES;
+            case ProtocolConstants.DataType.BOOLEAN:
+                return FieldType.BOOLEAN;
             default:
-                throw new UnsupportedOperationException("Datatype " + type.getName() + " not supported.");
+                throw new IllegalArgumentException("Cannot Map Cassandra Type " + type.getProtocolCode() + " to Beam Type");
         }
     }
 
@@ -260,23 +278,19 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
      * @return The corresponding representation that works in the Beam schema.
      */
     private Object toBeamObject(Object value, DataType typeName) {
-        if (typeName == null || typeName.getName() == null) {
-            throw new UnsupportedOperationException(
-                    "Unspecified Cassandra data type, cannot convert to beam row primitive.");
-        }
-        switch (typeName.getName()) {
-            case TIMESTAMP:
+        switch (typeName.getProtocolCode()) {
+            case ProtocolConstants.DataType.TIMESTAMP:
                 return new DateTime(value);
-            case UUID:
+            case ProtocolConstants.DataType.UUID:
                 return ((UUID) value).toString();
-            case VARINT:
+            case ProtocolConstants.DataType.VARINT:
                 return new BigDecimal((BigInteger) value);
-            case TIMEUUID:
-                return ((UUID) value).toString();
-            case DATE:
+            case ProtocolConstants.DataType.TIMEUUID:
+                return value.toString();
+            case ProtocolConstants.DataType.DATE:
                 LocalDate ld = (LocalDate) value;
                 return new DateTime(ld.getYear(), ld.getMonth().getValue(), ld.getDayOfMonth(), 0, 0);
-            case INET:
+            case ProtocolConstants.DataType.INET:
                 return ((InetAddress) value).getHostAddress();
             default:
                 return value;
@@ -287,7 +301,7 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
      * Not used as this pipeline only reads from cassandra.
      */
     @Override
-    public Future<Void> deleteAsync(Row entity) {
+    public CompletionStage<Void> deleteAsync(Row entity) {
         // get Table Metadata to locate partition key and clustering key
         // Ensure all items of the PK are present
         // Delete with all PK element and present CC element (if any)
@@ -299,7 +313,7 @@ public class BeamRowObjectMapperFn implements Mapper<Row>, Serializable {
      * Not used as this pipeline only reads from cassandra.
      */
     @Override
-    public Future<Void> saveAsync(Row entity) {
+    public CompletionStage<Void> saveAsync(Row entity) {
         //session.executeAsync("INSERT INTO " + table);
         // get Table Metadata to locate partition key and clustering key
         // S

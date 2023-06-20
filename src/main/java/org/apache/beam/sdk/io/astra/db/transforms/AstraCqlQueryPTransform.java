@@ -20,8 +20,7 @@ package org.apache.beam.sdk.io.astra.db.transforms;
  * #L%
  */
 
-import com.datastax.driver.core.ConsistencyLevel;
-import org.apache.beam.sdk.io.astra.db.AstraDbConnectionManager;
+import org.apache.beam.sdk.io.astra.db.CqlSessionHolder;
 import org.apache.beam.sdk.io.astra.db.options.AstraDbOptions;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
@@ -42,7 +41,7 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
     /**
      * Logger
      */
-    private static final Logger LOG = LoggerFactory.getLogger(AstraDbConnectionManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CqlSessionHolder.class);
 
     /**
      * Execute a CQL query
@@ -53,34 +52,7 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      *      cql command to execute
      */
     public AstraCqlQueryPTransform(AstraDbOptions options, String cql) {
-        this(options.getAstraToken(), new File(options.getAstraSecureConnectBundle()), options.getKeyspace(), cql);
-    }
-
-    /**
-     * Execute a CQL query
-     *
-     * @param token
-     *      authentication token
-     * @param secureConnectBundle
-     *      secure connect bundle
-     * @param keyspace
-     *      target keyspace
-     * @param cql
-     *      cql query to execute
-     */
-    public AstraCqlQueryPTransform(String token, File secureConnectBundle, String keyspace, String cql) {
-        LOG.info("Executing CQL: {}", cql);
-        AstraDbConnectionManager
-                .getInstance()
-                .getSession(
-                        ValueProvider.StaticValueProvider.of(token),
-                        ValueProvider.StaticValueProvider.of(ConsistencyLevel.LOCAL_QUORUM.name()),
-                        ValueProvider.StaticValueProvider.of(20000),
-                        ValueProvider.StaticValueProvider.of(20000),
-                        ValueProvider.StaticValueProvider.of(secureConnectBundle),
-                        null,
-                        keyspace)
-                .execute(cql);
+        this(options.getAstraToken(), options.getAstraSecureConnectBundle(), options.getKeyspace(), cql);
     }
 
     /**
@@ -97,15 +69,10 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      */
     public AstraCqlQueryPTransform(String token, byte[] secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
-        AstraDbConnectionManager
-                .getInstance()
-                .getSession(
-                        ValueProvider.StaticValueProvider.of(token),
-                        ValueProvider.StaticValueProvider.of(ConsistencyLevel.LOCAL_QUORUM.name()),
-                        ValueProvider.StaticValueProvider.of(20000),
-                        ValueProvider.StaticValueProvider.of(20000),
-                        null,
-                        ValueProvider.StaticValueProvider.of(secureConnectBundle), keyspace)
+        CqlSessionHolder.getCqlSession(
+                ValueProvider.StaticValueProvider.of(token),
+                ValueProvider.StaticValueProvider.of(secureConnectBundle),
+                ValueProvider.StaticValueProvider.of(keyspace))
                 .execute(cql);
     }
 

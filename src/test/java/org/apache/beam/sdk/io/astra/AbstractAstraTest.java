@@ -1,10 +1,10 @@
 package org.apache.beam.sdk.io.astra;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.dtsx.astra.sdk.AstraDevopsApiClient;
 import com.dtsx.astra.sdk.db.AstraDbClient;
 import com.dtsx.astra.sdk.db.DatabaseClient;
+import com.dtsx.astra.sdk.db.domain.DatabaseCreationBuilder;
 import com.dtsx.astra.sdk.db.domain.DatabaseCreationRequest;
 import com.dtsx.astra.sdk.db.domain.DatabaseStatusType;
 import com.dtsx.astra.sdk.utils.AstraRc;
@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Path;
 
 /**
  * To run unit test you need to set the following environment variables:
@@ -25,26 +26,12 @@ public abstract class AbstractAstraTest {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractAstraTest.class);
 
     /** Test Constants. */
-    public static final String TEST_DB_NAME = "beam_sdk_integration_test";
-
-    /** Test Constants. */
-    public static final String TEST_KEYSPACE = "beam";
-
-    /** Test Constants. */
     public static final String TEST_REGION = "us-east1";
-
-    /** Test Constants. */
-    protected static final String TEST_SCB_PATH = "/tmp/scb-"+ TEST_DB_NAME + ".zip";
 
     /**
      * Hold reference to token
      */
     protected static String token;
-
-    /**
-     * Hold reference to Secure Connect Bundle path.
-     */
-    protected static String secureConnectBundlePath = TEST_SCB_PATH;
 
     /**
      * Working db.
@@ -62,14 +49,13 @@ public abstract class AbstractAstraTest {
     protected static AstraDevopsApiClient apiDevopsClient;
 
     /**
-     * Reference to cluster.
-     */
-    protected static Cluster cluster;
-
-    /**
      * Reference to session.
      */
-    protected static Session session;
+    protected static CqlSession cqlSession;
+
+    protected static String getSecureConnectBundleFilePath(String dbName) {
+        return "/tmp/scb-"+ dbName + ".zip";
+    }
 
     /**
      * Read secure connect bundle path for tests.
@@ -77,18 +63,20 @@ public abstract class AbstractAstraTest {
      * @return
      *      token for test or error
      */
-    protected static File getSecureConnectBundleFile() {
-        File secureConnectBundle = new File(secureConnectBundlePath);
-        if (!new File(secureConnectBundlePath).exists()) {
-            LOGGER.info("Downloading SCB  {} as not existing ", secureConnectBundlePath);
+    protected static Path getSecureConnectBundlePath(String dbName, String keyspace) {
+        File secureConnectBundle = new File(getSecureConnectBundleFilePath(dbName));
+        if (!new File(getSecureConnectBundleFilePath(dbName)).exists()) {
+            LOGGER.info("Downloading SCB  {} as not existing ", getSecureConnectBundleFilePath(dbName));
             try {
-                createDbAndProvideClient().downloadDefaultSecureConnectBundle(secureConnectBundlePath);
+                createDbAndProvideClient(dbName, keyspace, false).
+                        downloadDefaultSecureConnectBundle(getSecureConnectBundleFilePath(dbName));
             } catch (InterruptedException e) {
                throw new IllegalStateException(e);
             }
         }
-        return secureConnectBundle;
+        return Path.of(getSecureConnectBundleFilePath(dbName));
     }
+
 
     /**
      * Initialization of the cluster.
@@ -96,26 +84,15 @@ public abstract class AbstractAstraTest {
      * @return
      *      Cassandra cluster
      */
-    protected static Cluster getCluster() {
-        if (cluster == null) {
-            cluster = Cluster.builder()
-                    .withCloudSecureConnectBundle(getSecureConnectBundleFile())
-                    .withCredentials("token", getToken())
+    protected static CqlSession getCqlSession(String dbName, String keyspace) {
+        if (cqlSession == null) {
+            cqlSession = CqlSession.builder()
+                    .withCloudSecureConnectBundle(getSecureConnectBundlePath(dbName, keyspace))
+                    .withAuthCredentials("token", getToken())
+                    .withKeyspace(keyspace)
                     .build();
         }
-        return cluster;
-    }
-
-    /**
-     * Return a session
-     * @return
-     */
-    protected static Session getSession() {
-        if (session == null) {
-            LOGGER.info("Initializing Session with keyspace {}", TEST_KEYSPACE);
-            session = getCluster().connect(TEST_KEYSPACE);
-        }
-        return session;
+        return cqlSession;
     }
 
     /**
@@ -172,34 +149,35 @@ public abstract class AbstractAstraTest {
      * @return
      *      database client
      */
-    protected static DatabaseClient createDbAndProvideClient() throws InterruptedException {
+    protected static DatabaseClient createDbAndProvideClient(String dbName, String keyspace, boolean vector) throws InterruptedException {
         if (dbClient == null) {
-            if (!getDatabasesClient().findByName(TEST_DB_NAME).findAny().isPresent()) {
-                LOGGER.info("Create DB  {} as not existing ", TEST_DB_NAME);
-                getDatabasesClient().create(DatabaseCreationRequest
+            if (!getDatabasesClient().findByName(dbName).findAny().isPresent()) {
+                LOGGER.info("Create DB  {} as not existing ", dbName);
+                DatabaseCreationBuilder dbcb = DatabaseCreationRequest
                         .builder()
-                        .name(TEST_DB_NAME)
-                        .keyspace(TEST_KEYSPACE)
-                        .cloudRegion(TEST_REGION)
-                        .build());
+                        .name(dbName)
+                        .keyspace(keyspace)
+                        .cloudRegion(TEST_REGION);
+                if (vector) {
+                    dbcb.withVector();
+                }
+                getDatabasesClient().create(dbcb.build());
             }
-            dbClient = getApiDevopsClient().db().databaseByName(TEST_DB_NAME);
+            dbClient = getApiDevopsClient().db().databaseByName(dbName);
             Assert.assertTrue(dbClient.exist());
         }
         while(dbClient.get().getStatus() != DatabaseStatusType.ACTIVE) {
             LOGGER.info("+ Waiting for the db to become ACTIVE ");
             Thread.sleep(5000);
         }
+        if (!dbClient.keyspaces().findAll().contains(keyspace)) {
+           dbClient.keyspaces().create(keyspace);
+        }
+        while(dbClient.get().getStatus() != DatabaseStatusType.ACTIVE) {
+            LOGGER.info("+ Waiting for the db to become ACTIVE ");
+            Thread.sleep(5000);
+        }
         return dbClient;
-    }
-
-    protected static final void cleanup() {
-        if (session!= null) {
-            session.close();
-        }
-        if (cluster!= null) {
-            cluster.close();
-        }
     }
 
 }
