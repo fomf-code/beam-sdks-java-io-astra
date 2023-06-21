@@ -39,23 +39,31 @@ public class ProductMapperFactoryFn implements SerializableFunction<CqlSession, 
                 .getProductDao(cqlSession.getKeyspace().get());
 
         // Mapping to Serialize
-        return new AstraDbMapper<ProductDto>() {
+        return new AstraDbMapperDelegate(dao);
+    }
 
-            @Override
-            public ProductDto mapRow(Row row) {
-                return new ProductDto(dao.mapRow(row));
-            }
+    public static class AstraDbMapperDelegate implements AstraDbMapper<ProductDto> {
 
-            @Override
-            public CompletionStage<Void> deleteAsync(ProductDto entity) {
-                return dao.deleteAsync(entity.toProduct());
-            }
+        ProductDao dao;
 
-            @Override
-            public CompletionStage<Void> saveAsync(ProductDto entity) {
-                return dao.saveAsync(entity.toProduct());
-            }
-        };
+        public AstraDbMapperDelegate(ProductDao dao) {
+            this.dao = dao;
+        }
+
+        @Override
+        public ProductDto mapRow(Row row) {
+            return new ProductDto(dao.mapRow(row));
+        }
+
+        @Override
+        public CompletionStage<Void> deleteAsync(ProductDto entity) {
+            return dao.deleteAsync(entity.toProduct());
+        }
+
+        @Override
+        public CompletionStage<Void> saveAsync(ProductDto entity) {
+            return dao.saveAsync(entity.toProduct());
+        }
     }
 
 }
