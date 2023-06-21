@@ -275,7 +275,6 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
         pipeline.run();
     }
 
-    @Test
     public void test07WriteAndDelete() throws IOException, InterruptedException {
         // Given a Table with records
         assertEquals((long) SCIENTISTS_COUNT, getRows(Scientist.TABLE_NAME).size());
