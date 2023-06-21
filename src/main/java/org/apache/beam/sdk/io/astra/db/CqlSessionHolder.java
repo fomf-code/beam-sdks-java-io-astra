@@ -168,14 +168,14 @@ public class CqlSessionHolder {
         throw new IllegalStateException("SHA-1 is not supported");
       }
       // Add a Shutdown Hook to close all sessions.
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        LOG.debug("CqlSessionHolder closing sessions...");
-        cacheSessions.values().stream()
-                .filter(s->!s.isClosed())
-                .forEach(CqlSession::close);
-        LOG.debug("CqlSessionHolder sessions are closed.");
-      }));
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> { cleanup(); }));
     }
+  }
+
+  public static void cleanup() {
+    cacheSessions.values().stream()
+            .filter(s->!s.isClosed())
+            .forEach(CqlSession::close);
   }
 
 }

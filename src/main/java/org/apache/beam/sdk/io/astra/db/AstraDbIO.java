@@ -853,4 +853,8 @@ public class AstraDbIO {
     }
   }
 
+  public static void close() {
+    CqlSessionHolder.cleanup();
+  }
+
 }

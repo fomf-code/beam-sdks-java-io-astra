@@ -23,9 +23,4 @@ package org.apache.beam.sdk.io.astra.db.options;
 /**
  * Specific keys for write operations.
  */
-public interface AstraDbWriteOptions extends AstraDbOptions {
-
-    // no consistency level as forced to LOCAL_QUORUM
-
-    // no read timeout
-}
+public interface AstraDbWriteOptions extends AstraDbOptions {}

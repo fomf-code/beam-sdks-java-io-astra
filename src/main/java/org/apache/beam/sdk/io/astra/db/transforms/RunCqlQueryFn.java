@@ -20,9 +20,7 @@ package org.apache.beam.sdk.io.astra.db.transforms;
  * #L%
  */
 
-import org.apache.beam.sdk.io.astra.db.AstraDbIO;
 import org.apache.beam.sdk.io.astra.db.CqlSessionHolder;
-import org.apache.beam.sdk.io.astra.db.options.AstraDbOptions;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.values.PCollection;
@@ -41,18 +39,6 @@ public class RunCqlQueryFn<T> extends PTransform<PCollection<T>, PCollection<T>>
      * Logger
      */
     private static final Logger LOG = LoggerFactory.getLogger(CqlSessionHolder.class);
-
-    /**
-     * Execute a CQL query
-     *
-     * @param options
-     *         pipeline Options
-     * @param cql
-     *         cql command to execute
-     */
-    public RunCqlQueryFn(AstraDbOptions options, String cql) {
-        this(options.getAstraToken(), options.getAstraSecureConnectBundle(), options.getKeyspace(), cql);
-    }
 
     /**
      * Execute a CQL query

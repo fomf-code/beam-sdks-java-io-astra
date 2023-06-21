@@ -9,9 +9,9 @@ package org.apache.beam.sdk.io.astra.db.options;
  * Licensed under the Apache License, Version 2.0
  * You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,21 +46,26 @@ public interface AstraDbOptions extends PipelineOptions  {
     void setAstraToken(String token);
 
     /**
-     * Access Astra secure bundle
+     * Secure Connect Bundle location. It can be;
+     * - a secret resourceId
+     * - a path to a file
+     * - a URL
+     *
+     * It will be converted as a byte array for Astra DbIO
      * @return the Astra secure bundle
      */
     @Description("Location of secure connect bundle, depending on environment could be path or secret resource id")
     @Validation.Required
-    byte[] getAstraSecureConnectBundle();
+    String getAstraSecureConnectBundle();
 
     /**
      * Update the Astra secure bundle
      *
-     * @param path
+     * @param secureConnectBundleLocation
      *      new value for Astra connection timeout
      */
     @SuppressWarnings("not used")
-    void setAstraSecureConnectBundle(byte[] path);
+    void setAstraSecureConnectBundle(String secureConnectBundleLocation);
 
     /**
      * Access Astra Keyspace
@@ -68,7 +73,7 @@ public interface AstraDbOptions extends PipelineOptions  {
      */
     @Description("Keyspace in Cassandra, a Db can have multiple keyspace")
     @Validation.Required
-    String getKeyspace();
+    String getAstraKeyspace();
 
     /**
      * Update the Astra keyspace
@@ -76,6 +81,6 @@ public interface AstraDbOptions extends PipelineOptions  {
      * @param keyspace
      *      new value for Astra keyspace
      */
-    void setKeyspace(String keyspace);
+    void setAstraKeyspace(String keyspace);
 
 }

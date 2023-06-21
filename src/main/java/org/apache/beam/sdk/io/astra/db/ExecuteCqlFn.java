@@ -22,8 +22,6 @@ package org.apache.beam.sdk.io.astra.db;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
-import org.apache.beam.sdk.io.astra.db.AstraDbIO;
-import org.apache.beam.sdk.io.astra.db.CqlSessionHolder;
 import org.apache.beam.sdk.transforms.DoFn;
 
 /**
