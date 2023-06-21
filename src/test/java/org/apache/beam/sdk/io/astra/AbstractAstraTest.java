@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -75,6 +77,14 @@ public abstract class AbstractAstraTest {
             }
         }
         return Path.of(getSecureConnectBundleFilePath(dbName));
+    }
+
+    protected static byte[] getSecureBundle(String dbname, String keyspace) {
+        try {
+            return Files.readAllBytes(getSecureConnectBundlePath(dbname, keyspace));
+        } catch (IOException e) {
+            throw new IllegalArgumentException("cannot read SCB file", e);
+        }
     }
 
 

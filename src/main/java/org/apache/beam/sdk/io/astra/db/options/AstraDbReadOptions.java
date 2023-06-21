@@ -33,7 +33,6 @@ public interface AstraDbReadOptions extends AstraDbOptions {
      * @return the Astra table name
      */
     @Description("Source Table")
-    @Validation.Required
     String getTable();
 
     /**

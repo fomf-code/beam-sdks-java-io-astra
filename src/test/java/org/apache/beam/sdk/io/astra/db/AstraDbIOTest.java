@@ -4,12 +4,10 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.datastax.oss.driver.api.mapper.annotations.CqlName;
-import com.datastax.oss.driver.api.mapper.annotations.Entity;
 import org.apache.beam.sdk.coders.SerializableCoder;
 import org.apache.beam.sdk.io.astra.AbstractAstraTest;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
-import org.apache.beam.sdk.io.astra.db.mapping.BeamRowMapperFactoryFn;
+import org.apache.beam.sdk.io.astra.db.mapping.BeamRowDbMapperFactoryFn;
 import org.apache.beam.sdk.io.astra.db.scientist.Scientist;
 import org.apache.beam.sdk.io.astra.db.scientist.ScientistMapperFactoryFn;
 import org.apache.beam.sdk.io.astra.db.simpledata.SimpleData;
@@ -28,10 +26,12 @@ import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.util.concurrent.
 import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.util.concurrent.MoreExecutors;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,13 +49,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Testing the @see {@link AstraDbIO} connector.
  */
 @RunWith(JUnit4.class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
 
     /**
@@ -77,6 +78,9 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     @Rule
     public transient TestPipeline pipeline = TestPipeline.create();
 
+    @Rule
+    public transient TestPipeline pipelineDelete = TestPipeline.create();
+
     @BeforeClass
     public static void beforeClass() {
         cqlSession = getCqlSession(TEST_DB, TEST_KEYSPACE);
@@ -93,7 +97,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     }
 
     @Test
-    public void testReadScientists() throws Exception {
+    public void test01ReadScientists() throws Exception {
         AstraDbIO.Read<Scientist> readScientistIO = AstraDbIO.<Scientist>read()
                 .withToken(getToken())
                 .withSecureConnectBundle(getSecureBundle())
@@ -130,7 +134,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     }
 
     @Test
-    public void testReadSimpleData() {
+    public void test02ReadSimpleData() {
 
         // Manual Mapping
         SerializableFunction<CqlSession, AstraDbMapper<SimpleData>> customMapperFn =
@@ -193,7 +197,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     }
 
     @Test
-    public void testReadWithApacheBeamRowMapping() {
+    public void test03ReadWithApacheBeamRowMapping() {
         PCollection<String> output = pipeline
                 .apply("Read From Cassandra",
                         AstraDbIO.<org.apache.beam.sdk.values.Row>read()
@@ -202,155 +206,110 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                                 .withKeyspace(TEST_KEYSPACE)
                                 .withTable(TEST_TABLE)
                                 .withMinNumberOfSplits(TEST_SPLIT_COUNT)
-                                .withMapperFactoryFn(new BeamRowMapperFactoryFn(TEST_KEYSPACE, TEST_TABLE))
+                                .withMapperFactoryFn(new BeamRowDbMapperFactoryFn(TEST_KEYSPACE, TEST_TABLE))
                                 .withCoder(SerializableCoder.of(org.apache.beam.sdk.values.Row.class))
                                 .withEntity(org.apache.beam.sdk.values.Row.class))
-                .apply("Show Row in Console",
-                        ParDo.of(new DoFn<org.apache.beam.sdk.values.Row, String>() {
-                            @DoFn.ProcessElement
-                            public void processElement(DoFn.ProcessContext c) {
-                                LOG.info("Row: {}", c.element().toString());
-                                c.output(c.element().toString());
-                            }
-                        }
-               ));
+                .apply("Show", ParDo.of(new ShowRow()));
         pipeline.run();
     }
 
-    private AstraDbIO.Read<Scientist> getReadWithQuery(String query) throws Exception {
+    /**
+     * Build a Read providing input Query on Scientist
+     */
+    private AstraDbIO.Read<Scientist> readScientistIO(String query) {
         return AstraDbIO.<Scientist>read()
                 .withToken(getToken())
                 .withSecureConnectBundle(getSecureBundle())
-                .withQuery(query)
                 .withKeyspace(TEST_KEYSPACE)
                 .withTable(Scientist.TABLE_NAME)
+                .withMinNumberOfSplits(20)
+                .withQuery(query)
                 .withMapperFactoryFn(new ScientistMapperFactoryFn())
                 .withCoder(SerializableCoder.of(Scientist.class))
                 .withEntity(Scientist.class);
     }
 
     @Test
-    public void testReadAllQuery() throws Exception {
-        String physQuery =
-                String.format(
+    public void test04ReadAllQuery() throws Exception {
+        String physQuery = String.format(
                         "SELECT * From %s.%s WHERE person_department='phys' AND person_id=0;",
                         TEST_KEYSPACE, TEST_TABLE);
-
-        String mathQuery =
-                String.format(
+        String mathQuery = String.format(
                         "SELECT * From %s.%s WHERE person_department='math' AND person_id=6;",
                         TEST_KEYSPACE, TEST_TABLE);
-
-        PCollection<Scientist> output =
-                pipeline.apply(Create.of(getReadWithQuery(physQuery), getReadWithQuery(mathQuery)))
-                        .apply(AstraDbIO.<Scientist>readAll().withCoder(SerializableCoder.of(Scientist.class)));
-
-        PCollection<String> mapped =
-                output.apply(
-                        MapElements.via(
-                                new SimpleFunction<Scientist, String>() {
-                                    @Override
-                                    public String apply(Scientist scientist) {
-                                        return scientist.getName();
-                                    }
-                                }));
+        PCollection<Scientist> output = pipeline
+                .apply(Create.of(readScientistIO(physQuery), readScientistIO(mathQuery)))
+                .apply(AstraDbIO.<Scientist>readAll().withCoder(SerializableCoder.of(Scientist.class)));
+        PCollection<String> mapped = output.apply(MapElements.via(
+                new SimpleFunction<Scientist, String>() {
+                    @Override
+                    public String apply(Scientist scientist) {
+                        return scientist.getName();
+        }
+        }));
         PAssert.that(mapped).containsInAnyOrder("Einstein", "Newton");
         PAssert.thatSingleton(output.apply("count", Count.globally())).isEqualTo(2L);
         pipeline.run();
     }
 
     @Test
-    public void testReadWithQuery() {
+    public void test05ReadWithQuery() {
         String query = String.format(
-                        "SELECT * FROM %s.%s " +
-                        "WHERE person_id=10 " +
-                        "AND person_department='logic'", TEST_KEYSPACE, TEST_TABLE);
-        PCollection<Scientist> output =
-                pipeline.apply(
-                        AstraDbIO.<Scientist>read()
-                                .withToken(getToken())
-                                .withSecureConnectBundle(getSecureBundle())
-                                .withKeyspace(TEST_KEYSPACE)
-                                .withTable(TEST_TABLE)
-                                .withMinNumberOfSplits(20)
-                                .withQuery(query)
-                                .withMapperFactoryFn(new ScientistMapperFactoryFn())
-                                .withCoder(SerializableCoder.of(Scientist.class))
-                                .withEntity(Scientist.class));
-
+                "SELECT * FROM %s.%s " +
+                "WHERE person_id=10 " +
+                "AND person_department='logic'", TEST_KEYSPACE, Scientist.TABLE_NAME);
+        PCollection<Scientist> output = pipeline.apply(readScientistIO(query));
         PAssert.thatSingleton(output.apply("Count", Count.globally())).isEqualTo(1L);
-        PAssert.that(output)
-                .satisfies(
-                        input -> {
-                            for (Scientist sci : input) {
-                                assertNotNull(sci.getName());
-                            }
-                            return null;
-                        });
         pipeline.run();
     }
 
-    // -- OK --
-    
     @Test
-    public void testReadWithUnfilteredQuery() throws Exception {
-        String query =
-                String.format(
-                        "select person_id, writetime(person_name) from %s.%s",
-                        TEST_KEYSPACE, TEST_TABLE);
-
-        PCollection<Scientist> output =
-                pipeline.apply(
-                        AstraDbIO.<Scientist>read()
-                                .withToken(getToken())
-                                .withSecureConnectBundle(Files.readAllBytes(getSecureConnectBundlePath(TEST_DB, TEST_KEYSPACE)))
-                                .withKeyspace(TEST_KEYSPACE)
-                                .withTable(TEST_TABLE)
-                                .withMinNumberOfSplits(20)
-                                .withQuery(query)
-                                .withCoder(SerializableCoder.of(Scientist.class))
-                                .withEntity(Scientist.class));
-
+    public void test06ReadWithUnfilteredQuery() throws Exception {
+        String selectAll = String.format( "select * from %s.%s",TEST_KEYSPACE, Scientist.TABLE_NAME);
+        PCollection<Scientist> output = pipeline.apply(readScientistIO(selectAll));
         PAssert.thatSingleton(output.apply("Count", Count.globally())).isEqualTo(SCIENTISTS_COUNT);
-        PAssert.that(output)
-                .satisfies(
-                        input -> {
-                            for (Scientist sci : input) {
-                                assertNull(sci.getName());
-                            }
-                            return null;
-                        });
-
+        PAssert.that(output).satisfies(input -> {
+            input.forEach(sci -> assertNotNull(sci.getName()));
+            return null;
+        });
         pipeline.run();
     }
 
     @Test
-    public void testWrite() throws IOException {
-        ArrayList<ScientistWrite> data = new ArrayList<>();
-        for (int i = 0; i < SCIENTISTS_COUNT; i++) {
-            ScientistWrite scientist = new ScientistWrite();
+    public void test07WriteAndDelete() throws IOException, InterruptedException {
+        // Given a Table with records
+        assertEquals((long) SCIENTISTS_COUNT, getRows(Scientist.TABLE_NAME).size());
+        // Building a list of X new Records
+        int newRecordsCount = 10;
+        ArrayList<Scientist> data = new ArrayList<>();
+        for (int i = SCIENTISTS_COUNT.intValue(); i < SCIENTISTS_COUNT.intValue()+newRecordsCount; i++) {
+            Scientist scientist = new Scientist();
             scientist.setId(i);
-            scientist.setName("Name " + i);
-            scientist.setDepartment("bio");
+            scientist.setName("Writing " + i);
+            scientist.setDepartment("IT");
             data.add(scientist);
         }
-
-        pipeline
-                .apply(Create.of(data))
-                .apply(
-                        AstraDbIO.<ScientistWrite>write()
-                                .withToken(getToken())
-                                .withSecureConnectBundle(Files.readAllBytes(getSecureConnectBundlePath(TEST_DB, TEST_KEYSPACE)))
-                                .withKeyspace(TEST_KEYSPACE)
-                                .withEntity(ScientistWrite.class));
-        // table to write to is specified in the entity in @Table annotation (in that case
-        // scientist_write)
+        // Writing
+        pipeline.apply(Create.of(data)).apply(
+             AstraDbIO.<Scientist>write()
+                      .withToken(getToken())
+                      .withSecureConnectBundle(getSecureBundle())
+                      .withKeyspace(TEST_KEYSPACE)
+                      .withMapperFactoryFn(new ScientistMapperFactoryFn())
+                      .withEntity(Scientist.class));
         pipeline.run();
-        List<Row> results = getRows(CASSANDRA_TABLE_WRITE);
-        assertEquals((long) SCIENTISTS_COUNT, results.size());
-        for (Row row : results) {
-            assertTrue(row.getString("person_name").matches("Name (\\d*)"));
-        }
+        // Then X records have been added
+        assertEquals((long) SCIENTISTS_COUNT+newRecordsCount, getRows(Scientist.TABLE_NAME).size());
+
+        pipelineDelete.apply(Create.of(data)).apply(
+                AstraDbIO.<Scientist>delete()
+                        .withToken(getToken())
+                        .withSecureConnectBundle(getSecureBundle())
+                        .withKeyspace(TEST_KEYSPACE)
+                        .withMapperFactoryFn(new ScientistMapperFactoryFn())
+                        .withEntity(Scientist.class));
+        pipelineDelete.run().waitUntilFinish();
+        assertEquals((long) SCIENTISTS_COUNT, getRows(Scientist.TABLE_NAME).size());
     }
 
     private static final AtomicInteger counter = new AtomicInteger();
@@ -406,63 +365,58 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     }
 
     @Test
-    public void testReadWithMapper() throws Exception {
+    public void test08ReadWithMapper() throws Exception {
         counter.set(0);
-
-        SerializableFunction<CqlSession, AstraDbMapper<String>> factory = new NOOPMapperFactory();
-
         pipeline.apply(
                 AstraDbIO.<String>read()
                         .withToken(getToken())
-                        .withSecureConnectBundle(Files.readAllBytes(getSecureConnectBundlePath(TEST_DB, TEST_KEYSPACE)))
+                        .withSecureConnectBundle(getSecureBundle())
                         .withKeyspace(TEST_KEYSPACE)
                         .withTable(TEST_TABLE)
                         .withCoder(SerializableCoder.of(String.class))
                         .withEntity(String.class)
-                        .withMapperFactoryFn(factory));
+                        .withMapperFactoryFn(new NOOPMapperFactory()));
         pipeline.run();
-
         assertEquals((long) SCIENTISTS_COUNT, counter.intValue());
     }
 
     @Test
-    public void testCustomMapperImplWrite() throws Exception {
+    public void test09CustomMapperImplWrite() throws Exception {
         counter.set(0);
-
-        SerializableFunction<CqlSession, AstraDbMapper<String>> factory = new NOOPMapperFactory();
-
-        pipeline
-                .apply(Create.of(""))
-                .apply(
-                        AstraDbIO.<String>write()
-                                .withToken(getToken())
-                                .withSecureConnectBundle(Files.readAllBytes(getSecureConnectBundlePath(TEST_DB, TEST_KEYSPACE)))
-                                .withKeyspace(TEST_KEYSPACE)
-                                .withMapperFactoryFn(factory)
-                                .withEntity(String.class));
+        pipeline.apply(Create.of(""))
+                .apply(AstraDbIO.<String>write()
+                        .withToken(getToken())
+                        .withSecureConnectBundle(getSecureBundle())
+                        .withKeyspace(TEST_KEYSPACE)
+                        .withMapperFactoryFn( new NOOPMapperFactory())
+                        .withEntity(String.class));
         pipeline.run();
-
         assertEquals(1, counter.intValue());
     }
 
     @Test
-    public void testCustomMapperImplDelete() throws IOException {
+    public void test10CustomMapperImplDelete() throws IOException {
         counter.set(0);
-
-        SerializableFunction<CqlSession, AstraDbMapper<String>> factory = new NOOPMapperFactory();
-
-        pipeline
-                .apply(Create.of(""))
-                .apply(
-                        AstraDbIO.<String>delete()
-                                .withToken(getToken())
-                                .withSecureConnectBundle(Files.readAllBytes(getSecureConnectBundlePath(TEST_DB, TEST_KEYSPACE)))
-                                .withKeyspace(TEST_KEYSPACE)
-                                .withMapperFactoryFn(factory)
-                                .withEntity(String.class));
+        pipeline.apply(Create.of(""))
+                .apply(AstraDbIO.<String>delete()
+                        .withToken(getToken())
+                        .withSecureConnectBundle(getSecureBundle())
+                        .withKeyspace(TEST_KEYSPACE)
+                        .withMapperFactoryFn(new NOOPMapperFactory())
+                        .withEntity(String.class));
         pipeline.run();
-
         assertEquals(1, counter.intValue());
+    }
+
+    // ----- Utility methods -------------------------------------------------
+
+    public static class ShowRow extends DoFn<org.apache.beam.sdk.values.Row, String> {
+
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            LOG.info("Row: {}", c.element().toString());
+            c.output(c.element().toString());
+        }
     }
 
     private List<Row> getRows(String table) {
@@ -471,49 +425,6 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                 .all();
     }
 
-    @Test
-    public void testDelete() throws Exception {
-        List<Row> results = getRows(TEST_TABLE);
-        assertEquals((long) SCIENTISTS_COUNT, results.size());
-
-        Scientist einstein = new Scientist();
-        einstein.setId(0);
-        einstein.setDepartment("phys");
-        einstein.setName("Einstein");
-        pipeline
-                .apply(Create.of(einstein))
-                .apply(
-                        AstraDbIO.<Scientist>delete()
-                                .withToken(getToken())
-                                .withSecureConnectBundle(Files.readAllBytes(getSecureConnectBundlePath(TEST_DB, TEST_KEYSPACE)))
-                                .withKeyspace(TEST_KEYSPACE)
-                                .withEntity(Scientist.class));
-
-        pipeline.run();
-        results = getRows(TEST_TABLE);
-        assertEquals(SCIENTISTS_COUNT - 1, results.size());
-        // re-insert suppressed doc to make the test autonomous
-        cqlSession.execute(
-                String.format(
-                        "INSERT INTO %s.%s(person_department, person_id, person_name) values("
-                                + "'phys', "
-                                + einstein.getId()
-                                + ", '"
-                                + einstein.getName()
-                                + "');",
-                        TEST_KEYSPACE,
-                        TEST_TABLE));
-    }
-
-    private static final String CASSANDRA_TABLE_WRITE = "scientist_write";
-    /** Simple Cassandra entity used in write tests. */
-
-    @Entity
-    @CqlName(CASSANDRA_TABLE_WRITE)
-    static class ScientistWrite extends Scientist {}
-
-    // ----- Utility methods -------------------------------------------------
-
     private static void createTables() {
         LOG.info("Create Cassandra tables");
         cqlSession.execute(
@@ -521,11 +432,6 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                         "CREATE TABLE IF NOT EXISTS %s.%s(person_department text, person_id int, person_name text, PRIMARY KEY"
                                 + "((person_department), person_id));",
                         TEST_KEYSPACE, TEST_TABLE));
-        cqlSession.execute(
-                String.format(
-                        "CREATE TABLE IF NOT EXISTS %s.%s(person_department text, person_id int, person_name text, PRIMARY KEY"
-                                + "((person_department), person_id));",
-                        TEST_KEYSPACE, CASSANDRA_TABLE_WRITE));
         cqlSession.execute(
                 String.format(
                         "CREATE TABLE IF NOT EXISTS %s.%s(id int, data text, PRIMARY KEY (id))",
@@ -542,6 +448,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
 
     private static void insertScientist(int recordCount) {
         LOG.info("Insert records");
+        cqlSession.execute("truncate " + TEST_KEYSPACE + "." + TEST_TABLE);
         String[][] scientists = {
                 new String[] {"phys", "Einstein"},
                 new String[] {"bio", "Darwin"},
@@ -573,10 +480,6 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     }
 
     private static byte[] getSecureBundle() {
-        try {
-            return Files.readAllBytes(getSecureConnectBundlePath(TEST_DB, TEST_KEYSPACE));
-        } catch (IOException e) {
-            throw new IllegalArgumentException("cannot read SCB file", e);
-        }
+        return getSecureBundle(TEST_DB, TEST_KEYSPACE);
     }
 }

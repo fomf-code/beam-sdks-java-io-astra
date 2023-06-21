@@ -78,19 +78,4 @@ public interface AstraDbOptions extends PipelineOptions  {
      */
     void setKeyspace(String keyspace);
 
-    /**
-     * Access Astra connection timeout
-     * @return the Astra connection timout
-     */
-    @Description("Timeout for Connectivity in milliseconds")
-    int getConnectTimeout();
-
-    /**
-     * Update the Astra connection timeout.
-     *
-     * @param connectTimeout
-     *      new value for Astra connection timeout
-     */
-    void setConnectTimeout(int connectTimeout);
-
 }

@@ -1,4 +1,4 @@
-package org.apache.beam.sdk.io.astra.db.transforms.split;
+package org.apache.beam.sdk.io.astra.db.vectorsearch;
 
 /*-
  * #%L
@@ -20,22 +20,16 @@ package org.apache.beam.sdk.io.astra.db.transforms.split;
  * #L%
  */
 
-import com.datastax.oss.driver.internal.core.metadata.SniEndPoint;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.mapper.annotations.DaoFactory;
+import com.datastax.oss.driver.api.mapper.annotations.DaoKeyspace;
+import com.datastax.oss.driver.api.mapper.annotations.Mapper;
 
-import java.io.Serializable;
+@Mapper
+public interface ProductDaoMapper {
 
-/**
- * Wrap the SNI EndPoint to be serializable.
- */
-public class AstraTokenRangeEndpoint extends SniEndPoint implements Serializable {
+    @DaoFactory
+    ProductDao getProductDao(@DaoKeyspace CqlIdentifier keyspace);
 
-    /**
-     * Composition constructor.
-     *
-     * @param sniEndPoint
-     *      current SNiEndPoint
-     */
-    public AstraTokenRangeEndpoint(SniEndPoint sniEndPoint) {
-        super(sniEndPoint.resolve(), sniEndPoint.getServerName());
-    }
 }
+

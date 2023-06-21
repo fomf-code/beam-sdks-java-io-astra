@@ -27,6 +27,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.CqlVectorType;
+import com.datastax.oss.driver.api.core.type.CustomType;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.ListType;
 import com.datastax.oss.driver.api.core.type.MapType;
@@ -92,7 +93,7 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
     /**
      * Constructor used by AstraDbRowMapperFactory.
      *
-     * @see BeamRowMapperFactoryFn
+     * @see BeamRowDbMapperFactoryFn
      * @see Row
      *
      * @param session the Cassandra session.
@@ -259,6 +260,11 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
                 return FieldType.BYTES;
             case ProtocolConstants.DataType.BOOLEAN:
                 return FieldType.BOOLEAN;
+            case ProtocolConstants.DataType.CUSTOM:
+                CustomType ct = (CustomType) type;
+                if (type instanceof CqlVectorType) {
+                    return FieldType.BYTES;
+                }
             default:
                 throw new IllegalArgumentException("Cannot Map Cassandra Type " + type.getProtocolCode() + " to Beam Type");
         }

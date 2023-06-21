@@ -1,12 +1,14 @@
 package org.apache.beam.sdk.io.astra.db.vectorsearch;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.internal.core.type.codec.CqlVectorCodec;
 import org.apache.beam.sdk.coders.SerializableCoder;
 import org.apache.beam.sdk.io.astra.AbstractAstraTest;
 import org.apache.beam.sdk.io.astra.db.AstraDbIO;
 import org.apache.beam.sdk.io.astra.db.AstraDbIOTest;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
-import org.apache.beam.sdk.io.astra.db.mapping.BeamRowMapperFactoryFn;
+import org.apache.beam.sdk.io.astra.db.mapping.BeamRowDbMapperFactoryFn;
+import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.ParDo;
@@ -20,7 +22,15 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.math.RoundingMode;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Test the Connector on a Vector Enabled Astra DB.
@@ -36,41 +46,51 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
 
     @BeforeClass
     public static void beforeClass() throws InterruptedException {
-        createDbAndProvideClient(DB_VECTOR_NAME, DB_KEYSPACE_NAME, true);
+        //createDbAndProvideClient(DB_VECTOR_NAME, DB_KEYSPACE_NAME, true);
         cqlSession = getCqlSession(DB_VECTOR_NAME, DB_KEYSPACE_NAME);
-        createSchema();
-        insertData();
+        //createSchema();
+        //insertData();
     }
 
     @Test
-    public void shouldBeConnected() throws IOException {
+    public void shouldReadATableWithVector() throws IOException {
         // Should be connected
         Assert.assertNotNull(cqlSession);
         Assert.assertEquals(DB_KEYSPACE_NAME, cqlSession.getKeyspace().get().toString());
 
         SerializableFunction<CqlSession, AstraDbMapper<Row>> beamRowMapperFactory =
-                new BeamRowMapperFactoryFn(DB_KEYSPACE_NAME, "products");
+                new BeamRowDbMapperFactoryFn(DB_KEYSPACE_NAME, "products");
 
-        // Accessing SCB Binary
-        byte[] secureConnectBundle = Files.readAllBytes(getSecureConnectBundlePath(DB_VECTOR_NAME, DB_KEYSPACE_NAME));
-
-        PCollection<String> output = pipeline.apply("Read From Cassandra",
+        PCollection<String> output = pipeline
+                .apply("Read Vector Cassandra",
                         AstraDbIO.<org.apache.beam.sdk.values.Row>read()
                                 .withToken(getToken())
-                                .withSecureConnectBundle(secureConnectBundle)
+                                .withSecureConnectBundle(getSecureBundle(DB_VECTOR_NAME, DB_KEYSPACE_NAME))
                                 .withKeyspace(DB_KEYSPACE_NAME)
                                 .withTable("products")
                                 .withMinNumberOfSplits(3)
                                 .withMapperFactoryFn(beamRowMapperFactory)
                                 .withCoder(SerializableCoder.of(org.apache.beam.sdk.values.Row.class))
                                 .withEntity(org.apache.beam.sdk.values.Row.class))
-                .apply("Show", ParDo.of(new DoFn<Row, String>() {
-                    @DoFn.ProcessElement
-                    public void processElement(DoFn.ProcessContext c) {
-                        System.out.println("Row:" + c.element().toString());
-                        c.output(c.element().toString());
-                    }
-                }));
+                .apply("Show Vector In Console", ParDo.of(new ShowRow()));
+
+        pipeline.run();
+    }
+
+    @Test
+    public void shouldReadTableWithMapper() {
+        pipeline
+            .apply("Read Vector Cassandra",
+                AstraDbIO.<ProductDto>read()
+                    .withToken(getToken())
+                    .withSecureConnectBundle(getSecureBundle(DB_VECTOR_NAME, DB_KEYSPACE_NAME))
+                    .withKeyspace(DB_KEYSPACE_NAME)
+                    .withTable("products")
+                    .withMinNumberOfSplits(3)
+                    .withMapperFactoryFn(new ProductMapperFactoryFn())
+                    .withCoder(SerializableCoder.of(ProductDto.class))
+                    .withEntity(ProductDto.class))
+            .apply("Display Product", ParDo.of(new DisplayProduct()));
         pipeline.run();
     }
 
@@ -100,6 +120,47 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
                 "INSERT INTO products (id, name, description, item_vector) " +
                 "VALUES (5,'Vision Vector Frame','A deep learning display that controls your mood', " +
                 "[0.1, 0.05, 0.08, 0.3, 0.6])");
+    }
+
+    // --- Mapper ------
+    public static class DisplayProduct extends DoFn<ProductDto, Void> {
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            System.out.println("Product [" + c.element().getName() + "] ");
+            System.out.println("- id:" + c.element().getId());
+            System.out.println("- vector:" + c.element().getVector());
+        }
+    }
+
+    // --- Utilities ---
+
+    public static class ShowRow extends DoFn<org.apache.beam.sdk.values.Row, String> {
+
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+
+             Schema.Field field = c.element().getSchema().getField("item_vector");
+
+             byte[] values = c.element().getBytes("item_vector");
+             int vectorDimention = values.length / 4;
+             ByteBuffer input = ByteBuffer.wrap(values);
+             Float[] vector = new Float[vectorDimention];
+             for (int i = 0; i < vectorDimention; i++) {
+                vector[i] = input.getFloat(i*4);
+             }
+            DecimalFormat df = new DecimalFormat("0", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
+            df.setMaximumFractionDigits(5);
+
+            String result =
+            Arrays.asList(vector).stream().map(f -> df.format(f))
+                    .collect(Collectors.toList()).toString();
+            System.out.println("Decoded Vector: " + result);
+
+             c.output(c.element().toString());
+            //CqlVectorCodec codec = new CqlVectorCodec<Float>();
+
+
+        }
     }
 
 

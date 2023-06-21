@@ -27,7 +27,7 @@ import org.apache.beam.sdk.values.Row;
 /**
  * Will Convert a Cassandra Row into a Beam Row.
  */
-public class BeamRowMapperFactoryFn implements
+public class BeamRowDbMapperFactoryFn implements
         SerializableFunction<CqlSession, AstraDbMapper<Row>> {
 
     /**
@@ -46,7 +46,7 @@ public class BeamRowMapperFactoryFn implements
      * @param cassandraTable the Cassandra table to read from.
      * @param cassandraKeyspace the Cassandra keyspace to read from.
      */
-    public BeamRowMapperFactoryFn(String cassandraKeyspace, String cassandraTable) {
+    public BeamRowDbMapperFactoryFn(String cassandraKeyspace, String cassandraTable) {
         this.keyspace = cassandraKeyspace;
         this.table = cassandraTable;
     }

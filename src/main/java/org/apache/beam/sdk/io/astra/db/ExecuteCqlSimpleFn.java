@@ -1,4 +1,4 @@
-package org.apache.beam.sdk.io.astra.db.transforms.split;
+package org.apache.beam.sdk.io.astra.db;
 
 /*-
  * #%L
@@ -20,22 +20,28 @@ package org.apache.beam.sdk.io.astra.db.transforms.split;
  * #L%
  */
 
-import com.datastax.oss.driver.internal.core.metadata.SniEndPoint;
-
-import java.io.Serializable;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.Row;
 
 /**
- * Wrap the SNI EndPoint to be serializable.
+ * Function to execute a Fn with no Mapping.
  */
-public class AstraTokenRangeEndpoint extends SniEndPoint implements Serializable {
+public class ExecuteCqlSimpleFn extends ExecuteCqlFn<Row> {
 
-    /**
-     * Composition constructor.
-     *
-     * @param sniEndPoint
-     *      current SNiEndPoint
-     */
-    public AstraTokenRangeEndpoint(SniEndPoint sniEndPoint) {
-        super(sniEndPoint.resolve(), sniEndPoint.getServerName());
+    public ExecuteCqlSimpleFn(CqlSession session) {
+        super(session);
+    }
+
+    public ExecuteCqlSimpleFn(AstraDbIO.Read<?> read) {
+       super(read);
+    }
+
+    public ExecuteCqlSimpleFn(AstraDbIO.Write<?> write) {
+        super(write);
+    }
+
+    @Override
+    public Row mapRow(Row row) {
+        return row;
     }
 }

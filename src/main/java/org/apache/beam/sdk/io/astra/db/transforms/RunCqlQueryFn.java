@@ -20,6 +20,7 @@ package org.apache.beam.sdk.io.astra.db.transforms;
  * #L%
  */
 
+import org.apache.beam.sdk.io.astra.db.AstraDbIO;
 import org.apache.beam.sdk.io.astra.db.CqlSessionHolder;
 import org.apache.beam.sdk.io.astra.db.options.AstraDbOptions;
 import org.apache.beam.sdk.options.ValueProvider;
@@ -28,15 +29,13 @@ import org.apache.beam.sdk.values.PCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-
 /**
  * Execute CQL Against Astra.
  *
  * @param <T>
  *      current bean
  */
-public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PCollection<T>> {
+public class RunCqlQueryFn<T> extends PTransform<PCollection<T>, PCollection<T>> {
 
     /**
      * Logger
@@ -47,11 +46,11 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      * Execute a CQL query
      *
      * @param options
-     *      pipeline Options
+     *         pipeline Options
      * @param cql
-     *      cql command to execute
+     *         cql command to execute
      */
-    public AstraCqlQueryPTransform(AstraDbOptions options, String cql) {
+    public RunCqlQueryFn(AstraDbOptions options, String cql) {
         this(options.getAstraToken(), options.getAstraSecureConnectBundle(), options.getKeyspace(), cql);
     }
 
@@ -67,13 +66,12 @@ public class AstraCqlQueryPTransform<T> extends PTransform<PCollection<T>, PColl
      * @param cql
      *      cql query to execute
      */
-    public AstraCqlQueryPTransform(String token, byte[] secureConnectBundle, String keyspace, String cql) {
+    public RunCqlQueryFn(String token, byte[] secureConnectBundle, String keyspace, String cql) {
         LOG.info("Executing CQL: {}", cql);
         CqlSessionHolder.getCqlSession(
                 ValueProvider.StaticValueProvider.of(token),
                 ValueProvider.StaticValueProvider.of(secureConnectBundle),
-                ValueProvider.StaticValueProvider.of(keyspace))
-                .execute(cql);
+                ValueProvider.StaticValueProvider.of(keyspace)).execute(cql);
     }
 
     /**
