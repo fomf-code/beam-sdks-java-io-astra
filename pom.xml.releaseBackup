@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.datastax.astra</groupId>
+  <artifactId>beam-sdks-java-io-astra</artifactId>
+  <description>Apache Beam SDK to work with Astra Pipelines</description>
+  <name>Beam SDK for Astra</name>
+  <packaging>jar</packaging>
+  <version>4.16.0-SNAPSHOT</version>
+  <url>https://github.com/clun/beam-sdks-java-io-astra</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.plugin.compiler.source>11</maven.plugin.compiler.source>
+    <maven.plugin.compiler.target>11</maven.plugin.compiler.target>
+    <!-- Beam -->
+    <beam.version>2.48.0</beam.version>
+    <!-- Astra -->
+    <astra-sdk.version>0.6</astra-sdk.version>
+    <cassandra-driver4x.version>4.16.0</cassandra-driver4x.version>
+    <!-- Third Parties -->
+    <slf4j.version>2.0.7</slf4j.version>
+    <logback.version>1.4.7</logback.version>
+    <auto-value.version>1.10.1</auto-value.version>
+    <junit.version>4.13.2</junit.version>
+    <hamcrest.version>2.2</hamcrest.version>
+    <!-- Maven -->
+    <version.maven.plugin.compiler>3.11.0</version.maven.plugin.compiler>
+    <version.maven.plugin.dependency>3.5.0</version.maven.plugin.dependency>
+    <version.maven.plugin.enforcer>3.3.0</version.maven.plugin.enforcer>
+    <version.maven.plugin.exec>1.6.0</version.maven.plugin.exec>
+    <version.maven.plugin.gpg>3.0.1</version.maven.plugin.gpg>
+    <version.maven.plugin.jar>3.3.0</version.maven.plugin.jar>
+    <version.maven.plugin.javadoc>3.4.1</version.maven.plugin.javadoc>
+    <version.maven.plugin.license>2.0.0</version.maven.plugin.license>
+    <version.maven.plugin.nexus>1.6.8</version.maven.plugin.nexus>
+    <version.maven.plugin.release>2.5.2</version.maven.plugin.release>
+    <version.maven.plugin.resources>3.3.1</version.maven.plugin.resources>
+    <version.maven.plugin.shade>3.4.1</version.maven.plugin.shade>
+    <version.maven.plugin.source>2.2.1</version.maven.plugin.source>
+    <version.maven.plugin.surefire>2.22.2</version.maven.plugin.surefire>
+  </properties>
+
+  <dependencies>
+
+    <!-- Beam -->
+    <dependency>
+      <groupId>org.apache.beam</groupId>
+      <artifactId>beam-sdks-java-core</artifactId>
+      <version>${beam.version}</version>
+    </dependency>
+
+    <!-- Cassandra Driver 4x  -->
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>${cassandra-driver4x.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-query-builder</artifactId>
+      <version>${cassandra-driver4x.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-mapper-runtime</artifactId>
+      <version>${cassandra-driver4x.version}</version>
+    </dependency>
+
+    <!-- AutoValue -->
+    <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value</artifactId>
+      <version>${auto-value.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value-annotations</artifactId>
+      <version>${auto-value.version}</version>
+    </dependency>
+
+    <!-- Logging -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+
+    <!-- Runtime -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>${logback.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Tests -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>${hamcrest.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.astra</groupId>
+      <artifactId>astra-sdk-devops</artifactId>
+      <version>${astra-sdk.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>ch.qos.logback</groupId>
+          <artifactId>logback-classic</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.beam</groupId>
+      <artifactId>beam-runners-direct-java</artifactId>
+      <version>${beam.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${version.maven.plugin.compiler}</version>
+        <configuration>
+          <source>${maven.plugin.compiler.source}</source>
+          <target>${maven.plugin.compiler.target}</target>
+          <showWarnings>false</showWarnings>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>com.google.auto.value</groupId>
+              <artifactId>auto-value</artifactId>
+              <version>${auto-value.version}</version>
+            </path>
+            <path>
+              <groupId>com.datastax.oss</groupId>
+              <artifactId>java-driver-mapper-processor</artifactId>
+              <version>${cassandra-driver4x.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>${version.maven.plugin.source}</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>${version.maven.plugin.release}</version>
+        <configuration>
+          <tagNameFormat>@{project.version}</tagNameFormat>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+          <useReleaseProfile>false</useReleaseProfile>
+          <releaseProfiles>release</releaseProfiles>
+          <goals>deploy</goals>
+        </configuration>
+      </plugin>
+
+      <!--
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${version.maven.plugin.javadoc}</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      -->
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>${version.maven.plugin.dependency}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>${version.maven.plugin.nexus}</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>false</autoReleaseAfterClose>
+          <skipLocalStaging>true</skipLocalStaging>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>${version.maven.plugin.gpg}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>${version.maven.plugin.license}</version>
+        <configuration>
+          <verbose>false</verbose>
+          <extraExtensions>
+            <myProprietaryExtension>java</myProprietaryExtension>
+          </extraExtensions>
+        </configuration>
+        <executions>
+          <execution>
+            <id>add-license</id>
+            <goals>
+              <goal>update-file-header</goal>
+            </goals>
+            <phase>process-sources</phase>
+            <configuration>
+              <projectName>Beam SDK for Astra</projectName>
+              <organizationName>DataStax</organizationName>
+              <inceptionYear>2023</inceptionYear>
+              <licenseName>apache2</licenseName>
+              <licenseResolver>${project.baseUri}/src/license</licenseResolver>
+              <addJavaLicenseAfterPackage>true</addJavaLicenseAfterPackage>
+              <sectionDelimiter>--</sectionDelimiter>
+              <roots>
+                <root>src/main/java</root>
+              </roots>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${version.maven.plugin.jar}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${version.maven.plugin.resources}</version>
+        <configuration>
+          <escapeString>\</escapeString>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+    </plugins>
+
+  </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <organization>
+    <name>DataStax</name>
+    <url>http://datastax.com</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>Apache 2</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:git@github.com:clun/beam-sdks-java-io-astra.git</connection>
+    <developerConnection>scm:git:git@github.com:clun/beam-sdks-java-io-astra.git</developerConnection>
+    <url>https://github.com/clun/beam-sdks-java-io-astra</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
+  <developers>
+    <developer>
+      <id>clunven</id>
+      <name>Cedrick Lunven</name>
+      <email>cedrick.lunven@gmail.com</email>
+      <url>https://github.com/clun</url>
+    </developer>
+  </developers>
+
+</project>
