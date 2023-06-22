@@ -43,10 +43,10 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
 
     @BeforeClass
     public static void beforeClass() throws InterruptedException {
-        //createDbAndProvideClient(DB_VECTOR_NAME, DB_KEYSPACE_NAME, true);
+        createDbAndProvideClient(DB_VECTOR_NAME, DB_KEYSPACE_NAME, true);
         cqlSession = getCqlSession(DB_VECTOR_NAME, DB_KEYSPACE_NAME);
-        //createSchema();
-        //insertData();
+        createSchema();
+        insertData();
     }
 
     @Test
@@ -152,11 +152,7 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
             Arrays.asList(vector).stream().map(f -> df.format(f))
                     .collect(Collectors.toList()).toString();
             System.out.println("Decoded Vector: " + result);
-
-             c.output(c.element().toString());
-            //CqlVectorCodec codec = new CqlVectorCodec<Float>();
-
-
+            c.output(c.element().toString());
         }
     }
 

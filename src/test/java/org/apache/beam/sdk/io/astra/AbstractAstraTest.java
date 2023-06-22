@@ -95,7 +95,7 @@ public abstract class AbstractAstraTest {
      *      Cassandra cluster
      */
     protected static CqlSession getCqlSession(String dbName, String keyspace) {
-        if (cqlSession == null) {
+        if (cqlSession == null || cqlSession.isClosed()) {
             cqlSession = CqlSession.builder()
                     .withCloudSecureConnectBundle(getSecureConnectBundlePath(dbName, keyspace))
                     .withAuthCredentials("token", getToken())
@@ -159,7 +159,8 @@ public abstract class AbstractAstraTest {
      * @return
      *      database client
      */
-    protected static DatabaseClient createDbAndProvideClient(String dbName, String keyspace, boolean vector) throws InterruptedException {
+    protected static DatabaseClient createDbAndProvideClient(String dbName, String keyspace, boolean vector)
+    throws InterruptedException {
         if (dbClient == null) {
             if (!getDatabasesClient().findByName(dbName).findAny().isPresent()) {
                 LOGGER.info("Create DB  {} as not existing ", dbName);
