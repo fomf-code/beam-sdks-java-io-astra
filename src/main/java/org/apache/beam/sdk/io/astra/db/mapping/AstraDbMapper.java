@@ -51,6 +51,13 @@ import java.util.concurrent.CompletionStage;
  */
 public interface AstraDbMapper<T> {
 
+  /**
+   * Produce object out of the row
+   * @param row
+   *    cassandra row
+   * @return
+   *    entity
+   */
   @GetEntity
   T mapRow(Row row);
 

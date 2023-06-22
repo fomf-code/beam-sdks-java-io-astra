@@ -24,6 +24,9 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import javax.annotation.Nullable;
 
+/**
+ * Describe a range of the ring.
+ */
 public final class RingRange implements Serializable {
 
     /** Start of the Range. */

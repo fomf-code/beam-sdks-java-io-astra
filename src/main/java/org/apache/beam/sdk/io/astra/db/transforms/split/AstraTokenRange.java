@@ -50,33 +50,74 @@ import java.util.Set;
  */
 public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
 
+  /** Set of replicas. */
   private final Set<AstraTokenRangeEndpoint> replicas;
 
+  /**
+   * Constructor without replicas.
+   * @param start
+   *      start token
+   * @param end
+   *      end token
+   */
   public AstraTokenRange(@NonNull Murmur3Token start, @NonNull Murmur3Token end) {
     super(start, end);
     this.replicas = ImmutableSet.of();
   }
 
+  /**
+   * Full constructor.
+   * @param start
+   *    start token
+   * @param end
+   *    end token
+   * @param replicas
+   *    replicas
+   */
   public AstraTokenRange(@NonNull Murmur3Token start, @NonNull Murmur3Token end, @NonNull Set<AstraTokenRangeEndpoint> replicas) {
     super(start, end);
     this.replicas = ImmutableSet.copyOf(replicas);
   }
 
+  /**
+   * Start token
+   *
+   * @return
+   *   getter for start token
+   */
   @NonNull
   public Murmur3Token getStart() {
     return (Murmur3Token) super.getStart();
   }
 
+  /**
+   * End token.
+   *
+   * @return
+   *   getter for end token
+   */
   @NonNull
   public Murmur3Token getEnd() {
     return (Murmur3Token) super.getEnd();
   }
 
+  /**
+   * List of replicas.
+   *
+   * @return
+   *    replicas list
+   */
   @NonNull
   public Set<AstraTokenRangeEndpoint> replicas() {
     return replicas;
   }
 
+  /**
+   * Size of the range.
+   *
+   * @return
+   *    size
+   */
   @NonNull
   public BigInteger size() {
     BigInteger left = BigInteger.valueOf(getStart().getValue());
@@ -88,6 +129,12 @@ public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
     }
   }
 
+  /**
+   * Fraction of ring range.
+   *
+   * @return
+   *    fracction of the range
+   */
   public double fraction() {
     return size().doubleValue() / AstraTokenFactory.TOTAL_TOKEN_COUNT.doubleValue();
   }

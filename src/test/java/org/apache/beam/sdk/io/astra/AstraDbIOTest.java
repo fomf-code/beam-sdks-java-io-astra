@@ -1,11 +1,11 @@
-package org.apache.beam.sdk.io.astra.db;
+package org.apache.beam.sdk.io.astra;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import org.apache.beam.sdk.coders.SerializableCoder;
-import org.apache.beam.sdk.io.astra.AbstractAstraTest;
+import org.apache.beam.sdk.io.astra.db.AstraDbIO;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
 import org.apache.beam.sdk.io.astra.db.mapping.BeamRowDbMapperFactoryFn;
 import org.apache.beam.sdk.io.astra.db.scientist.Scientist;
@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -67,8 +66,6 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     /** Test Constants. */
     private static final String  TEST_DB           = "beam_sdk_integration_test";
     private static final String  TEST_KEYSPACE     = "beam";
-    private static final String  TEST_TABLE        = "scientist";
-    private static final String  TEST_TABLE_SIMPLE = "simpledata";
 
     private static final Long    SCIENTISTS_COUNT   = 22L;
     private static final Long    SIMPLE_DATA_COUNT  = 100L;
@@ -204,9 +201,9 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                                 .withToken(getToken())
                                 .withSecureConnectBundle(getSecureBundle())
                                 .withKeyspace(TEST_KEYSPACE)
-                                .withTable(TEST_TABLE)
+                                .withTable(Scientist.TABLE_NAME)
                                 .withMinNumberOfSplits(TEST_SPLIT_COUNT)
-                                .withMapperFactoryFn(new BeamRowDbMapperFactoryFn(TEST_KEYSPACE, TEST_TABLE))
+                                .withMapperFactoryFn(new BeamRowDbMapperFactoryFn(TEST_KEYSPACE, Scientist.TABLE_NAME))
                                 .withCoder(SerializableCoder.of(org.apache.beam.sdk.values.Row.class))
                                 .withEntity(org.apache.beam.sdk.values.Row.class))
                 .apply("Show", ParDo.of(new ShowRow()));
@@ -222,7 +219,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                 .withSecureConnectBundle(getSecureBundle())
                 .withKeyspace(TEST_KEYSPACE)
                 .withTable(Scientist.TABLE_NAME)
-                .withMinNumberOfSplits(20)
+                .withMinNumberOfSplits(TEST_SPLIT_COUNT)
                 .withQuery(query)
                 .withMapperFactoryFn(new ScientistMapperFactoryFn())
                 .withCoder(SerializableCoder.of(Scientist.class))
@@ -233,10 +230,10 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     public void test04ReadAllQuery() throws Exception {
         String physQuery = String.format(
                         "SELECT * From %s.%s WHERE person_department='phys' AND person_id=0;",
-                        TEST_KEYSPACE, TEST_TABLE);
+                        TEST_KEYSPACE, Scientist.TABLE_NAME);
         String mathQuery = String.format(
                         "SELECT * From %s.%s WHERE person_department='math' AND person_id=6;",
-                        TEST_KEYSPACE, TEST_TABLE);
+                        TEST_KEYSPACE, Scientist.TABLE_NAME);
         PCollection<Scientist> output = pipeline
                 .apply(Create.of(readScientistIO(physQuery), readScientistIO(mathQuery)))
                 .apply(AstraDbIO.<Scientist>readAll().withCoder(SerializableCoder.of(Scientist.class)));
@@ -371,7 +368,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                         .withToken(getToken())
                         .withSecureConnectBundle(getSecureBundle())
                         .withKeyspace(TEST_KEYSPACE)
-                        .withTable(TEST_TABLE)
+                        .withTable(Scientist.TABLE_NAME)
                         .withCoder(SerializableCoder.of(String.class))
                         .withEntity(String.class)
                         .withMapperFactoryFn(new NOOPMapperFactory()));
@@ -430,24 +427,24 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                 String.format(
                         "CREATE TABLE IF NOT EXISTS %s.%s(person_department text, person_id int, person_name text, PRIMARY KEY"
                                 + "((person_department), person_id));",
-                        TEST_KEYSPACE, TEST_TABLE));
+                        TEST_KEYSPACE, Scientist.TABLE_NAME));
         cqlSession.execute(
                 String.format(
                         "CREATE TABLE IF NOT EXISTS %s.%s(id int, data text, PRIMARY KEY (id))",
-                        TEST_KEYSPACE, TEST_TABLE_SIMPLE));
+                        TEST_KEYSPACE, SimpleData.TABLE_NAME));
     }
 
     private static void insertSimpleData(int recordCount) {
         for (int i = 0; i < recordCount; i++) {
             cqlSession.execute(String.format("" +
                             "INSERT INTO %s.%s(id, data) " +
-                            "VALUES(" + i + ",' data_" + i + "');", TEST_KEYSPACE, TEST_TABLE_SIMPLE));
+                            "VALUES(" + i + ",' data_" + i + "');", TEST_KEYSPACE, SimpleData.TABLE_NAME));
         }
     }
 
     private static void insertScientist(int recordCount) {
         LOG.info("Insert records");
-        cqlSession.execute("truncate " + TEST_KEYSPACE + "." + TEST_TABLE);
+        cqlSession.execute("truncate " + TEST_KEYSPACE + "." + Scientist.TABLE_NAME);
         String[][] scientists = {
                 new String[] {"phys", "Einstein"},
                 new String[] {"bio", "Darwin"},
@@ -473,7 +470,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
                             + scientists[index][1]
                             + "');",
                     TEST_KEYSPACE,
-                    TEST_TABLE));
+                    Scientist.TABLE_NAME));
         }
 
     }

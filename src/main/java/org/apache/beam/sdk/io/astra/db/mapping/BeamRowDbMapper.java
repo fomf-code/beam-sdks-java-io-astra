@@ -86,9 +86,15 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
      */
     private final Set<String> primaryKeysColumnNames;
 
-    List<ColumnDefinition> columnDefinitions;
+    /**
+     * List of columns of the current table.
+     */
+    private List<ColumnDefinition> columnDefinitions;
 
-    Schema beamSchema;
+    /**
+     * Associated bean schema
+     */
+    private Schema beamSchema;
 
     /**
      * Constructor used by AstraDbRowMapperFactory.

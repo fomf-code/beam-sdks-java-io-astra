@@ -107,10 +107,15 @@ public class TokenRangeReadStatementGenerator {
    * in the ring and how contiguous token ranges are distributed across the ring. In particular with
    * vnodes, the total number of statements can be much higher than {@code splitCount}.
    *
-   * @param splitCount The minimum desired number of statements to generate (on a best-effort
+   * @param <StatementT>
+   *    The type of statement to generate.
+   * @param splitCount
+   *    The minimum desired number of statements to generate (on a best-effort
    *     basis).
-   * @param statementFactory The factory to use to generate statements for each split.
-   * @return A list of SELECT statements to read the entire table.
+   * @param statementFactory
+   *    The factory to use to generate statements for each split.
+   * @return
+   *    A list of SELECT statements to read the entire table.
    */
   @NonNull
   public <StatementT extends Statement<StatementT>> Map<TokenRange, StatementT> generate(

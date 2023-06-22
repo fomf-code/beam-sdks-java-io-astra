@@ -28,18 +28,41 @@ import com.datastax.oss.driver.api.core.cql.Row;
  */
 public class ExecuteCqlSimpleFn extends ExecuteCqlFn<Row> {
 
+    /**
+     * Constructor with Session.
+     *
+     * @param session the Cassandra session.
+     */
     public ExecuteCqlSimpleFn(CqlSession session) {
         super(session);
     }
 
+    /**
+     * Constructor with read.
+     *
+     * @param read the Cassandra session.
+     */
     public ExecuteCqlSimpleFn(AstraDbIO.Read<?> read) {
        super(read);
     }
 
+    /**
+     * Constructor with Write.
+     *
+     * @param write the Cassandra session.
+     */
     public ExecuteCqlSimpleFn(AstraDbIO.Write<?> write) {
         super(write);
     }
 
+    /**
+     * No Mapping.
+     *
+     * @param row
+     *      cassandra row
+     * @return
+     *      row
+     */
     @Override
     public Row mapRow(Row row) {
         return row;

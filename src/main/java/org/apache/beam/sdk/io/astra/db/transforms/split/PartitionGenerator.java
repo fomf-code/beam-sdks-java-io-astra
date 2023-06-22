@@ -93,7 +93,10 @@ public class PartitionGenerator {
   /**
    * Partitions the entire ring into approximately {@code splitCount} splits.
    *
-   * @param splitCount The desired number of splits.
+   * @param splitCount
+   *    The desired number of splits.
+   * @return
+   *    list of splits
    */
   @NonNull
   public List<AstraTokenRange> partition(int splitCount) {
@@ -110,6 +113,14 @@ public class PartitionGenerator {
     return groups;
   }
 
+  /**
+   * Describe the ring.
+   *
+   * @param splitCount
+   *    number of splits
+   * @return
+   *    the list of token ranges
+   */
   private List<AstraTokenRange> describeRing(int splitCount) {
     List<AstraTokenRange> ranges =
         tokenMap.getTokenRanges().stream().map(this::toAstraTokenRange).collect(Collectors.toList());
@@ -122,6 +133,14 @@ public class PartitionGenerator {
     }
   }
 
+  /**
+   * Convert default to Astra Token Range.
+   *
+   * @param range
+   *    default token range
+   * @return
+   *    astra token range
+   */
   private AstraTokenRange toAstraTokenRange(TokenRange range) {
     Set<AstraTokenRangeEndpoint> replicas =
         tokenMap.getReplicas(keyspace, range).stream()
@@ -132,6 +151,12 @@ public class PartitionGenerator {
     return tokenFactory.range(range.getStart(), range.getEnd(), replicas);
   }
 
+  /**
+   * Validating the sum of splits is the total ring.
+   *
+   * @param splits
+   *    list of splits
+   */
   private void checkRing(List<AstraTokenRange> splits) {
     double sum = splits.stream().map(AstraTokenRange::fraction).reduce(0d, Double::sum);
     if (Math.rint(sum) != 1.0d) {

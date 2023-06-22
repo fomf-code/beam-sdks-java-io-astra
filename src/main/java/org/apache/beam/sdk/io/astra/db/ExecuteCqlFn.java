@@ -29,27 +29,60 @@ import org.apache.beam.sdk.transforms.DoFn;
  */
 public abstract class ExecuteCqlFn<T> extends DoFn<String, Row> {
 
+    /**
+     * The Cassandra session.
+     */
     CqlSession cqlSession;
 
+    /**
+     * Constructor with Session.
+     *
+     * @param session the Cassandra session.
+     */
     public ExecuteCqlFn(CqlSession session) {
         this.cqlSession = session;
     }
 
+    /**
+     * Constructor with read.
+     *
+     * @param read reader.
+     */
     public ExecuteCqlFn(AstraDbIO.Read<?> read) {
         this.cqlSession = CqlSessionHolder.getCqlSession(
                 read.token(), read.secureConnectBundle(), read.keyspace());
     }
 
+    /**
+     * Constructor with write.
+     *
+     * @param write writer
+     */
     public ExecuteCqlFn(AstraDbIO.Write<?> write) {
         this.cqlSession = CqlSessionHolder.getCqlSession(
                 write.token(), write.secureConnectBundle(), write.keyspace());
     }
 
+    /**
+     * Executing query as implementation of the DoFn.
+     * @param query
+     *      current query
+     * @param receiver
+     *      query responses
+     */
     @ProcessElement
     public void processElement(@Element String query, OutputReceiver<T> receiver) {
         cqlSession.execute(query).forEach(row -> receiver.output(mapRow(row)));
     }
 
+    /**
+     * Show be implemented to map row.
+     *
+     * @param row
+     *      target row
+     * @return
+     *      row mapper
+     */
     public abstract T mapRow(Row row);
 
 

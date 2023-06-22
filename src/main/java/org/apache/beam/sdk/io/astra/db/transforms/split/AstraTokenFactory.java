@@ -44,26 +44,60 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.math.BigInteger;
 import java.util.Set;
 
+/**
+ * Produce Token Ranges on Mumur3 (used in AStra)
+ */
 public class AstraTokenFactory extends Murmur3TokenFactory {
 
+  /** Total number of tokens in the ring. */
   public static final BigInteger TOTAL_TOKEN_COUNT =
           BigInteger.valueOf(Long.MAX_VALUE).subtract(BigInteger.valueOf(Long.MIN_VALUE));
 
+  /**
+   * Get total number of token for the ring.
+   *
+   * @return
+   *    token number
+   */
   @NonNull
   public BigInteger totalTokenCount() {
     return TOTAL_TOKEN_COUNT;
   }
 
+  /**
+   * Compute a range of token.
+   *
+   * @param start
+   *    start token
+   * @param end
+   *    end token
+   * @param replicas
+   *    replicas endpoints
+   * @return
+   *    a token range
+   */
   @NonNull
   public AstraTokenRange range(@NonNull Token start, @NonNull Token end, @NonNull Set<AstraTokenRangeEndpoint> replicas) {
     return new AstraTokenRange(((Murmur3Token) start), (Murmur3Token) end, replicas);
   }
 
+  /**
+   * Create Splitter.
+   *
+   * @return
+   *    token range splitter
+   */
   @NonNull
   public TokenRangeSplitter splitter() {
     return new AstraTokenRangeSplitter();
   }
 
+  /**
+   * Create token clusterer.
+   *
+   * @return
+   *    clusterer.
+   */
   @NonNull
   public TokenRangeClusterer clusterer() {
     return new TokenRangeClusterer(this);

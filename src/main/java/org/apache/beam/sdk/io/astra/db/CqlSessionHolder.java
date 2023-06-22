@@ -96,6 +96,8 @@ public class CqlSessionHolder {
    *    token (or clientSecret)
    * @param secureConnectBundle
    *    read scb as stream
+   * @param keyspace
+   *    list of keyspaces
    * @return
    *    cassandra cluster
    */
@@ -172,6 +174,9 @@ public class CqlSessionHolder {
     }
   }
 
+  /**
+   * Close all sessions.
+   */
   public static void cleanup() {
     cacheSessions.values().stream()
             .filter(s->!s.isClosed())

@@ -53,8 +53,17 @@ import java.util.List;
  */
 public class TokenRangeClusterer {
 
+  /**
+   * Reference to the factory
+   */
   private final AstraTokenFactory tokenFactory;
 
+  /**
+   * Constructor for the clusterer.
+   *
+   * @param tokenFactory
+   *    list of token
+   */
   public TokenRangeClusterer(@NonNull AstraTokenFactory tokenFactory) {
     this.tokenFactory = tokenFactory;
   }
@@ -67,6 +76,15 @@ public class TokenRangeClusterer {
    * make it possible to route a range read to a coordinator that is also a replica), whereas the
    * latter favors data locality (i.e. groups even non-continguous ranges as long as they share at
    * least one common replica).
+   *
+   * @param ranges
+   *    list of ranges
+   * @param groupCount
+   *    number of gorups
+   * @param maxGroupSize
+   *    maximum group size
+   * @return
+   *    list of token
    */
   @NonNull
   public List<AstraTokenRange> group(List<AstraTokenRange> ranges, int groupCount, int maxGroupSize) {

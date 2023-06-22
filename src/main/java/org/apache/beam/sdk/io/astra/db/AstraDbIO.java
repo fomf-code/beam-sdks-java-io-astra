@@ -141,6 +141,12 @@ public class AstraDbIO {
 
     abstract @Nullable Coder<T> coder();
 
+    /**
+     * Expose split count.
+     *
+     * @return
+     *    minimal split count
+     */
     public abstract @Nullable ValueProvider<Integer> minNumberOfSplits();
 
     abstract @Nullable SerializableFunction<CqlSession, AstraDbMapper<T>> mapperFactoryFn();
@@ -853,6 +859,9 @@ public class AstraDbIO {
     }
   }
 
+  /**
+   * Closing Open Connections.
+   */
   public static void close() {
     CqlSessionHolder.cleanup();
   }

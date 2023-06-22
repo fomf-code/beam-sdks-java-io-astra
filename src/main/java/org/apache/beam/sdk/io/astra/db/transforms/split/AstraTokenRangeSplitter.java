@@ -45,8 +45,20 @@ import java.util.List;
 import static java.math.BigInteger.ONE;
 import static java.math.BigInteger.ZERO;
 
+/**
+ * Splitter for the Token Range
+ */
 public class AstraTokenRangeSplitter implements TokenRangeSplitter {
 
+  /**
+   * Split Operation.
+   *
+   * @param tokenRange The range to split.
+   * @param splitCount The desired number of resulting chunks.
+   *
+   * @return
+   *    ranges
+   */
   @NonNull
   @Override
   public List<AstraTokenRange> split(@NonNull AstraTokenRange tokenRange, int splitCount) {

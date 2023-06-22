@@ -13,14 +13,15 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.plugin.compiler.source>11</maven.plugin.compiler.source>
     <maven.plugin.compiler.target>11</maven.plugin.compiler.target>
+    <maven.skip.test>false</maven.skip.test>
     <!-- Beam -->
     <beam.version>2.48.0</beam.version>
     <!-- Astra -->
-    <astra-sdk.version>0.6</astra-sdk.version>
+    <astra-sdk.version>0.6.2</astra-sdk.version>
     <cassandra-driver4x.version>4.16.0</cassandra-driver4x.version>
     <!-- Third Parties -->
     <slf4j.version>2.0.7</slf4j.version>
-    <logback.version>1.4.7</logback.version>
+    <logback.version>1.4.8</logback.version>
     <auto-value.version>1.10.1</auto-value.version>
     <junit.version>4.13.2</junit.version>
     <hamcrest.version>2.2</hamcrest.version>
@@ -31,9 +32,9 @@
     <version.maven.plugin.exec>1.6.0</version.maven.plugin.exec>
     <version.maven.plugin.gpg>3.0.1</version.maven.plugin.gpg>
     <version.maven.plugin.jar>3.3.0</version.maven.plugin.jar>
-    <version.maven.plugin.javadoc>3.4.1</version.maven.plugin.javadoc>
+    <version.maven.plugin.javadoc>3.5.0</version.maven.plugin.javadoc>
     <version.maven.plugin.license>2.0.0</version.maven.plugin.license>
-    <version.maven.plugin.nexus>1.6.8</version.maven.plugin.nexus>
+    <version.maven.plugin.nexus>1.6.13</version.maven.plugin.nexus>
     <version.maven.plugin.release>2.5.2</version.maven.plugin.release>
     <version.maven.plugin.resources>3.3.1</version.maven.plugin.resources>
     <version.maven.plugin.shade>3.4.1</version.maven.plugin.shade>
@@ -185,7 +186,6 @@
         </configuration>
       </plugin>
 
-      <!--
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -199,17 +199,15 @@
           </execution>
         </executions>
       </plugin>
-      -->
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${version.maven.plugin.surefire}</version>
         <configuration>
-          <skipTests>true</skipTests>
+          <skipTests>${maven.skip.test}</skipTests>
         </configuration>
       </plugin>
-
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

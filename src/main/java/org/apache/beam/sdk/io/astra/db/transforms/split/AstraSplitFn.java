@@ -53,6 +53,13 @@ public class AstraSplitFn<T> extends DoFn<AstraDbIO.Read<T>, AstraDbIO.Read<T>> 
         LOG.info("Split into Token Ranges.");
     }
 
+    /**
+     * Implement splits in token ranges.
+     * @param read
+     *      current read
+     * @param outputReceiver
+     *      splits
+     */
     @ProcessElement
     public void process(@Element AstraDbIO.Read<T> read, OutputReceiver<AstraDbIO.Read<T>> outputReceiver) {
         getRingRanges(read)

@@ -1,13 +1,13 @@
-package org.apache.beam.sdk.io.astra.db.vectorsearch;
+package org.apache.beam.sdk.io.astra;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.internal.core.type.codec.CqlVectorCodec;
 import org.apache.beam.sdk.coders.SerializableCoder;
 import org.apache.beam.sdk.io.astra.AbstractAstraTest;
 import org.apache.beam.sdk.io.astra.db.AstraDbIO;
-import org.apache.beam.sdk.io.astra.db.AstraDbIOTest;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
 import org.apache.beam.sdk.io.astra.db.mapping.BeamRowDbMapperFactoryFn;
+import org.apache.beam.sdk.io.astra.db.vectorsearch.ProductDto;
+import org.apache.beam.sdk.io.astra.db.vectorsearch.ProductMapperFactoryFn;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -22,10 +22,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.math.RoundingMode;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
