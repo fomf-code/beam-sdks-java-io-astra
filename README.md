@@ -20,39 +20,26 @@ To use this SDK, add the following dependency to your project:
 
 ### Usage
 
-- Define a Bean in respect of the `cassandra-driver-mapping` rules. Those are described in the [referential documentation](https://docs.datastax.com/en/developer/java-driver/3.11/manual/object_mapper/creating/). As an example we leverage this bean and this table:
-```sql
-CREATE TABLE IF NOT EXISTS simpledata (
-    id int,
-    data text,  
-    PRIMARY KEY (id)
-);  
-```
+Documentation is avalailable in [Awesome Astra](https://awesome-astra.github.io/docs/pages/tools/integration/apache-beam-google-dataflow/) with sample codes
 
-- Associated bean will be the class [`SimpleDataEntity`](#) 
+
+- Read Data From Astra
 
 ```java
-@Table(name = "simpledata")
-public class SimpleDataEntity implements Serializable {
-    
-    @PartitionKey
-    protected int id;
-    @Column
-    protected String data;
-    
-    //Constructor, Getters and setters
-}
-```
 
+ // LanguageCode is a sample Pojo
 
-- Create a Pipeline to read data From Astra
-```java
-```
+ // LanguageCodeDaoMapperFactoryFn implements 
+ // SerializableFunction<CqlSession, AstraDbMapper<LanguageCode>>
 
-
-- Create a Pipeline to write data into Astra
-```java
-
+AstraDbIO.Read<LanguageCode> read = AstraDbIO.<LanguageCode>read()
+  .withToken(options.getAstraToken())
+  .withKeyspace(options.getAstraKeyspace())
+  .withSecureConnectBundle(scbZip)
+  .withTable(options.getTable())
+  .withCoder(SerializableCoder.of(LanguageCode.class))
+  .withMapperFactoryFn(new LanguageCodeDaoMapperFactoryFn())
+  .withEntity(LanguageCode.class))
 ```
 
 
