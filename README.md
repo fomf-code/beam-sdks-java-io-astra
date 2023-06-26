@@ -23,14 +23,17 @@ To use this SDK, add the following dependency to your project:
 Documentation is avalailable in [Awesome Astra](https://awesome-astra.github.io/docs/pages/tools/integration/apache-beam-google-dataflow/) with sample codes
 
 
-- Read Data From Astra
+- **Read Data From Astra**
 
 ```java
+// LanguageCode is a sample Pojo
 
- // LanguageCode is a sample Pojo
+// LanguageCodeDaoMapperFactoryFn implements 
+// SerializableFunction<CqlSession, AstraDbMapper<LanguageCode>>
 
- // LanguageCodeDaoMapperFactoryFn implements 
- // SerializableFunction<CqlSession, AstraDbMapper<LanguageCode>>
+// Get binary from File path
+byte[] scbZip = AstraSecureConnectBundleUtils
+                .loadFromFilePath(options.getAstraSecureConnectBundle());
 
 AstraDbIO.Read<LanguageCode> read = AstraDbIO.<LanguageCode>read()
   .withToken(options.getAstraToken())
