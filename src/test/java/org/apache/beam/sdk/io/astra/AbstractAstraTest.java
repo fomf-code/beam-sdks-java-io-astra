@@ -95,6 +95,7 @@ public abstract class AbstractAstraTest {
      *      Cassandra cluster
      */
     protected static CqlSession getCqlSession(String dbName, String keyspace) {
+        System.out.println(getSecureConnectBundlePath(dbName, keyspace));
         if (cqlSession == null || cqlSession.isClosed()) {
             cqlSession = CqlSession.builder()
                     .withCloudSecureConnectBundle(getSecureConnectBundlePath(dbName, keyspace))
