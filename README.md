@@ -8,7 +8,8 @@ Apache Beam SDK to work with Astra Pipelines
 
 To use this SDK, add the following dependency to your project:
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.datastax.astra/com.datastax.astra/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.datastax.astra/beam-sdks-java-io-astra)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/datastax-examples/beam-sdks-java-io-astra?label=latest%20release&color=green)
+
 
 ```xml
 <dependency>
@@ -45,8 +46,4 @@ AstraDbIO.Read<LanguageCode> read = AstraDbIO.<LanguageCode>read()
   .withEntity(LanguageCode.class))
 ```
 
-
-
-
-
-
+---
