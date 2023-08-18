@@ -8,8 +8,7 @@ Apache Beam SDK to work with Astra Pipelines
 
 To use this SDK, add the following dependency to your project:
 
-![GitHub release (with filter)](https://img.shields.io/github/v/release/datastax-examples/beam-sdks-java-io-astra?label=latest%20release&color=green)
-
+![GitHub release (with filter)](https://img.shields.io/github/v/release/datastax-examples/beam-sdks-java-io-astra?label=latest%20release&color=green&link=https%3A%2F%2Fgithub.com%2FDataStax-Examples%2Fbeam-sdks-java-io-astra%2Freleases)
 
 ```xml
 <dependency>
