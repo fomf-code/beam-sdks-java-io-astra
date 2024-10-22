@@ -22,8 +22,8 @@ import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.SimpleFunction;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.util.concurrent.ListeningExecutorService;
-import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.util.concurrent.MoreExecutors;
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.util.concurrent.MoreExecutors;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
@@ -272,6 +272,7 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
         pipeline.run();
     }
 
+    @Test
     public void test07WriteAndDelete() throws IOException, InterruptedException {
         // Given a Table with records
         assertEquals((long) SCIENTISTS_COUNT, getRows(Scientist.TABLE_NAME).size());
@@ -478,4 +479,5 @@ public class AstraDbIOTest extends AbstractAstraTest implements Serializable {
     private static byte[] getSecureBundle() {
         return getSecureBundle(TEST_DB, TEST_KEYSPACE);
     }
+
 }

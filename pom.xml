@@ -15,31 +15,31 @@
     <maven.plugin.compiler.target>11</maven.plugin.compiler.target>
     <maven.skip.test>false</maven.skip.test>
     <!-- Beam -->
-    <beam.version>2.48.0</beam.version>
+    <beam.version>2.60.0</beam.version>
     <!-- Astra -->
-    <astra-sdk.version>0.6.2</astra-sdk.version>
-    <cassandra-driver4x.version>4.16.0</cassandra-driver4x.version>
+    <astra-sdk.version>1.2.9</astra-sdk.version>
+    <cassandra-driver4x.version>4.18.1</cassandra-driver4x.version>
     <!-- Third Parties -->
-    <slf4j.version>2.0.7</slf4j.version>
-    <logback.version>1.4.8</logback.version>
-    <auto-value.version>1.10.1</auto-value.version>
+    <slf4j.version>2.0.16</slf4j.version>
+    <logback.version>1.5.11</logback.version>
+    <auto-value.version>1.11.0</auto-value.version>
     <junit.version>4.13.2</junit.version>
     <hamcrest.version>2.2</hamcrest.version>
     <!-- Maven -->
-    <version.maven.plugin.compiler>3.11.0</version.maven.plugin.compiler>
-    <version.maven.plugin.dependency>3.5.0</version.maven.plugin.dependency>
-    <version.maven.plugin.enforcer>3.3.0</version.maven.plugin.enforcer>
+    <version.maven.plugin.compiler>3.13.0</version.maven.plugin.compiler>
+    <version.maven.plugin.dependency>3.8.0</version.maven.plugin.dependency>
+    <version.maven.plugin.enforcer>3.5.0</version.maven.plugin.enforcer>
     <version.maven.plugin.exec>1.6.0</version.maven.plugin.exec>
-    <version.maven.plugin.gpg>3.0.1</version.maven.plugin.gpg>
-    <version.maven.plugin.jar>3.3.0</version.maven.plugin.jar>
-    <version.maven.plugin.javadoc>3.5.0</version.maven.plugin.javadoc>
-    <version.maven.plugin.license>2.0.0</version.maven.plugin.license>
-    <version.maven.plugin.nexus>1.6.13</version.maven.plugin.nexus>
-    <version.maven.plugin.release>2.5.2</version.maven.plugin.release>
+    <version.maven.plugin.gpg>3.2.7</version.maven.plugin.gpg>
+    <version.maven.plugin.jar>3.4.2</version.maven.plugin.jar>
+    <version.maven.plugin.javadoc>3.10.1</version.maven.plugin.javadoc>
+    <version.maven.plugin.license>2.4.0</version.maven.plugin.license>
+    <version.maven.plugin.nexus>1.7.0</version.maven.plugin.nexus>
+    <version.maven.plugin.release>3.1.1</version.maven.plugin.release>
     <version.maven.plugin.resources>3.3.1</version.maven.plugin.resources>
     <version.maven.plugin.shade>3.4.1</version.maven.plugin.shade>
-    <version.maven.plugin.source>2.2.1</version.maven.plugin.source>
-    <version.maven.plugin.surefire>2.22.2</version.maven.plugin.surefire>
+    <version.maven.plugin.source>3.3.1</version.maven.plugin.source>
+    <version.maven.plugin.surefire>3.5.1</version.maven.plugin.surefire>
   </properties>
 
   <dependencies>
@@ -53,17 +53,17 @@
 
     <!-- Cassandra Driver 4x  -->
     <dependency>
-      <groupId>com.datastax.oss</groupId>
+      <groupId>org.apache.cassandra</groupId>
       <artifactId>java-driver-core</artifactId>
       <version>${cassandra-driver4x.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
+      <groupId>org.apache.cassandra</groupId>
       <artifactId>java-driver-query-builder</artifactId>
       <version>${cassandra-driver4x.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
+      <groupId>org.apache.cassandra</groupId>
       <artifactId>java-driver-mapper-runtime</artifactId>
       <version>${cassandra-driver4x.version}</version>
     </dependency>
@@ -78,6 +78,11 @@
       <groupId>com.google.auto.value</groupId>
       <artifactId>auto-value-annotations</artifactId>
       <version>${auto-value.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.jcip</groupId>
+      <artifactId>jcip-annotations</artifactId>
+      <version>1.0</version>
     </dependency>
 
     <!-- Logging -->
@@ -153,7 +158,7 @@
               <version>${auto-value.version}</version>
             </path>
             <path>
-              <groupId>com.datastax.oss</groupId>
+              <groupId>org.apache.cassandra</groupId>
               <artifactId>java-driver-mapper-processor</artifactId>
               <version>${cassandra-driver4x.version}</version>
             </path>
@@ -282,6 +287,28 @@
           <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${version.maven.plugin.enforcer}</version>
+        <executions>
+          <execution>
+            <id>enforce-maven</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.6.3,)</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
 
   </build>

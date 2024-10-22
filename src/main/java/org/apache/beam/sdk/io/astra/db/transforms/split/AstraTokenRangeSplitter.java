@@ -36,8 +36,8 @@ package org.apache.beam.sdk.io.astra.db.transforms.split;
  */
 
 import com.datastax.oss.driver.internal.core.metadata.token.Murmur3Token;
-import edu.umd.cs.findbugs.annotations.NonNull;
 
+import javax.annotation.Nonnull;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,9 +59,9 @@ public class AstraTokenRangeSplitter implements TokenRangeSplitter {
    * @return
    *    ranges
    */
-  @NonNull
+  @Nonnull
   @Override
-  public List<AstraTokenRange> split(@NonNull AstraTokenRange tokenRange, int splitCount) {
+  public List<AstraTokenRange> split(@Nonnull AstraTokenRange tokenRange, int splitCount) {
     BigInteger rangeSize = tokenRange.size();
     BigInteger val = BigInteger.valueOf(splitCount);
     // If the range size is lesser than the number of splits,

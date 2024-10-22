@@ -5,9 +5,11 @@ import com.datastax.oss.driver.api.mapper.annotations.CqlName;
 import com.datastax.oss.driver.api.mapper.annotations.Entity;
 import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
+import java.io.Serializable;
+
 @Entity
 @CqlName(Product.TABLE_NAME)
-public class Product {
+public class Product implements Serializable {
 
     /** Table Name. */
     public static final String TABLE_NAME = "products";

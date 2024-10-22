@@ -52,7 +52,7 @@ import org.apache.beam.sdk.io.astra.db.AstraDbIO.Read;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
 import org.apache.beam.sdk.io.astra.db.transforms.split.RingRange;
 import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Joiner;
+import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

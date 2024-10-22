@@ -1,9 +1,9 @@
 package org.apache.beam.sdk.io.astra;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.dtsx.astra.sdk.AstraDevopsApiClient;
-import com.dtsx.astra.sdk.db.AstraDbClient;
-import com.dtsx.astra.sdk.db.DatabaseClient;
+import com.dtsx.astra.sdk.AstraOpsClient;
+import com.dtsx.astra.sdk.db.AstraDBOpsClient;
+import com.dtsx.astra.sdk.db.DbOpsClient;
 import com.dtsx.astra.sdk.db.domain.DatabaseCreationBuilder;
 import com.dtsx.astra.sdk.db.domain.DatabaseCreationRequest;
 import com.dtsx.astra.sdk.db.domain.DatabaseStatusType;
@@ -38,22 +38,48 @@ public abstract class AbstractAstraTest {
     /**
      * Working db.
      */
-    protected static DatabaseClient dbClient;
+    protected static DbOpsClient dbOpsClient;
 
     /**
      * Reference to Databases Client.
      */
-    private static AstraDbClient databasesClient;
+    private static AstraOpsClient astraOpsClient;
 
     /**
      * Reference to organization client.
      */
-    protected static AstraDevopsApiClient apiDevopsClient;
+    protected static AstraDBOpsClient astraDbOpsClient;
 
     /**
      * Reference to session.
      */
     protected static CqlSession cqlSession;
+
+    /**
+     * Access DB client.
+     *
+     * @return
+     *      client fot databases
+     */
+    protected static AstraOpsClient getAstraOpsClient() {
+        if (astraOpsClient == null) {
+            astraOpsClient = new AstraOpsClient(getToken());
+        }
+        return astraOpsClient;
+    }
+
+    /**
+     * Access DB client.
+     *
+     * @return
+     *      client fot databases
+     */
+    protected static AstraDBOpsClient getAstraDbOpsClient() {
+        if (astraDbOpsClient == null) {
+            astraDbOpsClient = new AstraDBOpsClient(getToken());
+        }
+        return astraDbOpsClient;
+    }
 
     protected static String getSecureConnectBundleFilePath(String dbName) {
         return "/tmp/scb-"+ dbName + ".zip";
@@ -86,7 +112,6 @@ public abstract class AbstractAstraTest {
             throw new IllegalArgumentException("cannot read SCB file", e);
         }
     }
-
 
     /**
      * Initialization of the cluster.
@@ -129,41 +154,15 @@ public abstract class AbstractAstraTest {
     }
 
     /**
-     * Access DB client.
-     *
-     * @return
-     *      client fot databases
-     */
-    protected static AstraDbClient getDatabasesClient() {
-        if (databasesClient == null) {
-            databasesClient = new AstraDbClient(getToken());
-        }
-        return databasesClient;
-    }
-
-    /**
-     * Access DB client.
-     *
-     * @return
-     *      client fot databases
-     */
-    protected static AstraDevopsApiClient getApiDevopsClient() {
-        if (apiDevopsClient == null) {
-            apiDevopsClient = new AstraDevopsApiClient(getToken());
-        }
-        return apiDevopsClient;
-    }
-
-    /**
      * Create DB if not exist
      *
      * @return
      *      database client
      */
-    protected static DatabaseClient createDbAndProvideClient(String dbName, String keyspace, boolean vector)
+    protected static DbOpsClient createDbAndProvideClient(String dbName, String keyspace, boolean vector)
     throws InterruptedException {
-        if (dbClient == null) {
-            if (!getDatabasesClient().findByName(dbName).findAny().isPresent()) {
+        if (dbOpsClient == null) {
+            if (!getAstraDbOpsClient().databaseByName(dbName).find().isPresent()) {
                 LOGGER.info("Create DB  {} as not existing ", dbName);
                 DatabaseCreationBuilder dbcb = DatabaseCreationRequest
                         .builder()
@@ -173,23 +172,24 @@ public abstract class AbstractAstraTest {
                 if (vector) {
                     dbcb.withVector();
                 }
-                getDatabasesClient().create(dbcb.build());
+                getAstraDbOpsClient().create(dbcb.build());
             }
-            dbClient = getApiDevopsClient().db().databaseByName(dbName);
-            Assert.assertTrue(dbClient.exist());
+
+            dbOpsClient = getAstraDbOpsClient().databaseByName(dbName);
+            Assert.assertTrue(dbOpsClient.exist());
         }
-        while(dbClient.get().getStatus() != DatabaseStatusType.ACTIVE) {
+        while(dbOpsClient.get().getStatus() != DatabaseStatusType.ACTIVE) {
             LOGGER.info("+ Waiting for the db to become ACTIVE ");
             Thread.sleep(5000);
         }
-        if (!dbClient.keyspaces().findAll().contains(keyspace)) {
-           dbClient.keyspaces().create(keyspace);
+        if (!dbOpsClient.keyspaces().findAll().contains(keyspace)) {
+           dbOpsClient.keyspaces().create(keyspace);
         }
-        while(dbClient.get().getStatus() != DatabaseStatusType.ACTIVE) {
+        while(dbOpsClient.get().getStatus() != DatabaseStatusType.ACTIVE) {
             LOGGER.info("+ Waiting for the db to become ACTIVE ");
             Thread.sleep(5000);
         }
-        return dbClient;
+        return dbOpsClient;
     }
 
 }

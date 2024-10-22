@@ -1,6 +1,8 @@
 package org.apache.beam.sdk.io.astra.db.vectorsearch;
 
 import com.datastax.oss.driver.api.core.data.CqlVector;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.List;
@@ -24,7 +26,7 @@ public class ProductDto implements Serializable {
         this.name = p.getName();
         this.description = p.getDescription();
         this.vector = StreamSupport
-                .stream(p.getVector().getValues().spliterator(), false)
+                .stream(p.getVector().spliterator(), false)
                 .collect(Collectors.toList());
     }
 
@@ -33,7 +35,7 @@ public class ProductDto implements Serializable {
         p.setId(this.id);
         p.setName(this.name);
         p.setDescription(this.description);
-        p.setVector(CqlVector.builder().addAll(this.vector).build());
+        p.setVector(CqlVector.newInstance(this.vector));
         return p;
     }
 

@@ -40,10 +40,10 @@ import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metadata.TokenMap;
 import com.datastax.oss.driver.api.core.metadata.token.TokenRange;
 import com.datastax.oss.driver.internal.core.metadata.SniEndPoint;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -98,7 +98,7 @@ public class PartitionGenerator {
    * @return
    *    list of splits
    */
-  @NonNull
+  @Nonnull
   public List<AstraTokenRange> partition(int splitCount) {
     List<AstraTokenRange> tokenRanges = describeRing(splitCount);
     int endpointCount = (int) tokenRanges.stream().map(AstraTokenRange::replicas).distinct().count();

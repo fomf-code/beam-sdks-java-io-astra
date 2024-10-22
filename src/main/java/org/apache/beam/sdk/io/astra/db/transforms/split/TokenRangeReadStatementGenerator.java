@@ -43,8 +43,8 @@ import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.RelationMetadata;
 import com.datastax.oss.driver.api.core.metadata.token.TokenRange;
 import com.datastax.oss.driver.internal.core.metadata.token.Murmur3Token;
-import edu.umd.cs.findbugs.annotations.NonNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -62,7 +62,7 @@ public class TokenRangeReadStatementGenerator {
    * @param table The table (or materialized view) to scan.
    * @param metadata The cluster metadata to use.
    */
-  public TokenRangeReadStatementGenerator(@NonNull RelationMetadata table, @NonNull Metadata metadata) {
+  public TokenRangeReadStatementGenerator(@Nonnull RelationMetadata table, @Nonnull Metadata metadata) {
     this.table = table;
     tokenMap =
         metadata
@@ -87,7 +87,7 @@ public class TokenRangeReadStatementGenerator {
    *     basis).
    * @return A list of SELECT statements to read the entire table.
    */
-  @NonNull
+  @Nonnull
   public Map<TokenRange, SimpleStatement> generate(int splitCount) {
     return generate(splitCount, this::generateSimpleStatement);
   }
@@ -117,9 +117,9 @@ public class TokenRangeReadStatementGenerator {
    * @return
    *    A list of SELECT statements to read the entire table.
    */
-  @NonNull
+  @Nonnull
   public <StatementT extends Statement<StatementT>> Map<TokenRange, StatementT> generate(
-      int splitCount, @NonNull Function<TokenRange, StatementT> statementFactory) {
+      int splitCount, @Nonnull Function<TokenRange, StatementT> statementFactory) {
     AstraTokenFactory tokenFactory = new AstraTokenFactory();
     PartitionGenerator generator = new PartitionGenerator(table.getKeyspace(), tokenMap, tokenFactory);
     List<AstraTokenRange> partitions = generator.partition(splitCount);

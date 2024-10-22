@@ -52,7 +52,7 @@ public class BeamRowDbMapperFactoryFn implements
     }
 
     @Override
-    public AstraDbMapper apply(CqlSession session) {
+    public AstraDbMapper<Row> apply(CqlSession session) {
         return new BeamRowDbMapper(session, keyspace, table);
     }
 }

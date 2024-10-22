@@ -35,12 +35,11 @@ package org.apache.beam.sdk.io.astra.db.transforms.split;
  * #L%
  */
 
-import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import com.datastax.oss.driver.internal.core.metadata.token.Murmur3Token;
 import com.datastax.oss.driver.internal.core.metadata.token.Murmur3TokenRange;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.NonNull;
 
+import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Set;
@@ -60,7 +59,7 @@ public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
    * @param end
    *      end token
    */
-  public AstraTokenRange(@NonNull Murmur3Token start, @NonNull Murmur3Token end) {
+  public AstraTokenRange(@Nonnull Murmur3Token start, @Nonnull Murmur3Token end) {
     super(start, end);
     this.replicas = ImmutableSet.of();
   }
@@ -74,7 +73,7 @@ public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
    * @param replicas
    *    replicas
    */
-  public AstraTokenRange(@NonNull Murmur3Token start, @NonNull Murmur3Token end, @NonNull Set<AstraTokenRangeEndpoint> replicas) {
+  public AstraTokenRange(@Nonnull Murmur3Token start, @Nonnull Murmur3Token end, @Nonnull Set<AstraTokenRangeEndpoint> replicas) {
     super(start, end);
     this.replicas = ImmutableSet.copyOf(replicas);
   }
@@ -85,7 +84,7 @@ public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
    * @return
    *   getter for start token
    */
-  @NonNull
+  @Nonnull
   public Murmur3Token getStart() {
     return (Murmur3Token) super.getStart();
   }
@@ -96,7 +95,7 @@ public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
    * @return
    *   getter for end token
    */
-  @NonNull
+  @Nonnull
   public Murmur3Token getEnd() {
     return (Murmur3Token) super.getEnd();
   }
@@ -107,7 +106,7 @@ public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
    * @return
    *    replicas list
    */
-  @NonNull
+  @Nonnull
   public Set<AstraTokenRangeEndpoint> replicas() {
     return replicas;
   }
@@ -118,7 +117,7 @@ public class AstraTokenRange extends Murmur3TokenRange implements Serializable {
    * @return
    *    size
    */
-  @NonNull
+  @Nonnull
   public BigInteger size() {
     BigInteger left = BigInteger.valueOf(getStart().getValue());
     BigInteger right = BigInteger.valueOf(getEnd().getValue());

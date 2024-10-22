@@ -35,12 +35,11 @@ package org.apache.beam.sdk.io.astra.db.transforms.split;
  * #L%
  */
 
-import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import com.datastax.oss.driver.api.core.metadata.token.Token;
 import com.datastax.oss.driver.internal.core.metadata.token.Murmur3Token;
 import com.datastax.oss.driver.internal.core.metadata.token.Murmur3TokenFactory;
-import edu.umd.cs.findbugs.annotations.NonNull;
 
+import javax.annotation.Nonnull;
 import java.math.BigInteger;
 import java.util.Set;
 
@@ -59,7 +58,7 @@ public class AstraTokenFactory extends Murmur3TokenFactory {
    * @return
    *    token number
    */
-  @NonNull
+  @Nonnull
   public BigInteger totalTokenCount() {
     return TOTAL_TOKEN_COUNT;
   }
@@ -76,8 +75,8 @@ public class AstraTokenFactory extends Murmur3TokenFactory {
    * @return
    *    a token range
    */
-  @NonNull
-  public AstraTokenRange range(@NonNull Token start, @NonNull Token end, @NonNull Set<AstraTokenRangeEndpoint> replicas) {
+  @Nonnull
+  public AstraTokenRange range(@Nonnull Token start, @Nonnull Token end, @Nonnull Set<AstraTokenRangeEndpoint> replicas) {
     return new AstraTokenRange(((Murmur3Token) start), (Murmur3Token) end, replicas);
   }
 
@@ -87,7 +86,7 @@ public class AstraTokenFactory extends Murmur3TokenFactory {
    * @return
    *    token range splitter
    */
-  @NonNull
+  @Nonnull
   public TokenRangeSplitter splitter() {
     return new AstraTokenRangeSplitter();
   }
@@ -98,7 +97,7 @@ public class AstraTokenFactory extends Murmur3TokenFactory {
    * @return
    *    clusterer.
    */
-  @NonNull
+  @Nonnull
   public TokenRangeClusterer clusterer() {
     return new TokenRangeClusterer(this);
   }

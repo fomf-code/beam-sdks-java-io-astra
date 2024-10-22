@@ -23,47 +23,16 @@ package org.apache.beam.sdk.io.astra.db.vectorsearch;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
-import org.apache.beam.sdk.io.astra.db.scientist.Scientist;
-import org.apache.beam.sdk.io.astra.db.scientist.ScientistDao;
-import org.apache.beam.sdk.io.astra.db.scientist.ScientistDaoMapperBuilder;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 
 import java.util.concurrent.CompletionStage;
 
-public class ProductMapperFactoryFn implements SerializableFunction<CqlSession, AstraDbMapper<ProductDto>> {
+public class ProductMapperFactoryFn implements SerializableFunction<CqlSession, AstraDbMapper<Product>> {
 
     @Override
-    public AstraDbMapper<ProductDto> apply(CqlSession cqlSession) {
-        // Product is not serializable, so we need to use the DAO to map to a serializable object
-        ProductDao dao = new ProductDaoMapperBuilder(cqlSession).build()
+    public ProductDao apply(CqlSession cqlSession) {
+        return new ProductDaoMapperBuilder(cqlSession).build()
                 .getProductDao(cqlSession.getKeyspace().get());
-
-        // Mapping to Serialize
-        return new AstraDbMapperDelegate(dao);
-    }
-
-    public static class AstraDbMapperDelegate implements AstraDbMapper<ProductDto> {
-
-        ProductDao dao;
-
-        public AstraDbMapperDelegate(ProductDao dao) {
-            this.dao = dao;
-        }
-
-        @Override
-        public ProductDto mapRow(Row row) {
-            return new ProductDto(dao.mapRow(row));
-        }
-
-        @Override
-        public CompletionStage<Void> deleteAsync(ProductDto entity) {
-            return dao.deleteAsync(entity.toProduct());
-        }
-
-        @Override
-        public CompletionStage<Void> saveAsync(ProductDto entity) {
-            return dao.saveAsync(entity.toProduct());
-        }
     }
 
 }

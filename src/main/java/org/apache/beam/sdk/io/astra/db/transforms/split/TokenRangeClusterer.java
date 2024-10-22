@@ -39,8 +39,8 @@ import com.datastax.oss.driver.api.core.metadata.token.Token;
 import com.datastax.oss.driver.api.core.metadata.token.TokenRange;
 import com.datastax.oss.driver.shaded.guava.common.collect.ComparisonChain;
 import com.datastax.oss.driver.shaded.guava.common.collect.Lists;
-import edu.umd.cs.findbugs.annotations.NonNull;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -64,7 +64,7 @@ public class TokenRangeClusterer {
    * @param tokenFactory
    *    list of token
    */
-  public TokenRangeClusterer(@NonNull AstraTokenFactory tokenFactory) {
+  public TokenRangeClusterer(@Nonnull AstraTokenFactory tokenFactory) {
     this.tokenFactory = tokenFactory;
   }
 
@@ -86,7 +86,7 @@ public class TokenRangeClusterer {
    * @return
    *    list of token
    */
-  @NonNull
+  @Nonnull
   public List<AstraTokenRange> group(List<AstraTokenRange> ranges, int groupCount, int maxGroupSize) {
     double ringFractionPerGroup = 1.0d / groupCount;
     LinkedList<AstraTokenRange> sorted = Lists.newLinkedList(ranges);

@@ -34,9 +34,7 @@ package org.apache.beam.sdk.io.astra.db.transforms.split;
  * limitations under the License.
  * #L%
  */
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,8 +52,8 @@ public interface TokenRangeSplitter {
    * @param splitCount The desired number of resulting chunks.
    * @return A list of ranges of approximately {@code splitCount} chunks.
    */
-  @NonNull
-  default List<AstraTokenRange> split(@NonNull Iterable<AstraTokenRange> tokenRanges, int splitCount) {
+  @Nonnull
+  default List<AstraTokenRange> split(@Nonnull Iterable<AstraTokenRange> tokenRanges, int splitCount) {
     double ringFractionPerSplit = 1.0 / (double) splitCount;
     return StreamSupport.stream(tokenRanges.spliterator(), false)
         .flatMap(
@@ -76,6 +74,6 @@ public interface TokenRangeSplitter {
    * @param splitCount The desired number of resulting chunks.
    * @return A list of ranges of approximately {@code splitCount} chunks.
    */
-  @NonNull
-  List<AstraTokenRange> split(@NonNull AstraTokenRange tokenRange, int splitCount);
+  @Nonnull
+  List<AstraTokenRange> split(@Nonnull AstraTokenRange tokenRange, int splitCount);
 }

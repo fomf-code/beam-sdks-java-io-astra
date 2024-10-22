@@ -2,13 +2,13 @@ package org.apache.beam.sdk.io.astra;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import org.apache.beam.sdk.coders.SerializableCoder;
-import org.apache.beam.sdk.io.astra.AbstractAstraTest;
 import org.apache.beam.sdk.io.astra.db.AstraDbIO;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
 import org.apache.beam.sdk.io.astra.db.mapping.BeamRowDbMapperFactoryFn;
+import org.apache.beam.sdk.io.astra.db.vectorsearch.Product;
 import org.apache.beam.sdk.io.astra.db.vectorsearch.ProductDto;
+import org.apache.beam.sdk.io.astra.db.vectorsearch.ProductDtoMapperFactoryFn;
 import org.apache.beam.sdk.io.astra.db.vectorsearch.ProductMapperFactoryFn;
-import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.ParDo;
@@ -22,12 +22,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 /**
  * Test the Connector on a Vector Enabled Astra DB.
@@ -75,7 +69,7 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
     }
 
     @Test
-    public void shouldReadTableWithMapper() {
+    public void shouldReadTableWithMapperDto() {
         pipeline
             .apply("Read Vector Cassandra",
                 AstraDbIO.<ProductDto>read()
@@ -84,10 +78,27 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
                     .withKeyspace(DB_KEYSPACE_NAME)
                     .withTable("products")
                     .withMinNumberOfSplits(3)
-                    .withMapperFactoryFn(new ProductMapperFactoryFn())
+                    .withMapperFactoryFn(new ProductDtoMapperFactoryFn())
                     .withCoder(SerializableCoder.of(ProductDto.class))
                     .withEntity(ProductDto.class))
-            .apply("Display Product", ParDo.of(new DisplayProduct()));
+            .apply("Display Product", ParDo.of(new DisplayProductDto()));
+        pipeline.run();
+    }
+
+    @Test
+    public void shouldReadTableWithMapper() {
+        pipeline
+                .apply("Read Vector Cassandra",
+                        AstraDbIO.<Product>read()
+                                .withToken(getToken())
+                                .withSecureConnectBundle(getSecureBundle(DB_VECTOR_NAME, DB_KEYSPACE_NAME))
+                                .withKeyspace(DB_KEYSPACE_NAME)
+                                .withTable("products")
+                                .withMinNumberOfSplits(3)
+                                .withMapperFactoryFn(new ProductMapperFactoryFn())
+                                .withCoder(SerializableCoder.of(Product.class))
+                                .withEntity(Product.class))
+                .apply("Display Product", ParDo.of(new DisplayProduct()));
         pipeline.run();
     }
 
@@ -120,7 +131,18 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
     }
 
     // --- Mapper ------
-    public static class DisplayProduct extends DoFn<ProductDto, Void> {
+    public static class DisplayProductDto extends DoFn<ProductDto, Void> {
+
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            System.out.println("Product [" + c.element().getName() + "] ");
+            System.out.println("- id:" + c.element().getId());
+            System.out.println("- vector:" + c.element().getVector());
+        }
+    }
+
+    public static class DisplayProduct extends DoFn<Product, Void> {
+
         @ProcessElement
         public void processElement(ProcessContext c) {
             System.out.println("Product [" + c.element().getName() + "] ");
@@ -135,23 +157,7 @@ public class AstraDbIOVectorTest extends AbstractAstraTest implements Serializab
 
         @ProcessElement
         public void processElement(ProcessContext c) {
-
-             Schema.Field field = c.element().getSchema().getField("item_vector");
-
-             byte[] values = c.element().getBytes("item_vector");
-             int vectorDimention = values.length / 4;
-             ByteBuffer input = ByteBuffer.wrap(values);
-             Float[] vector = new Float[vectorDimention];
-             for (int i = 0; i < vectorDimention; i++) {
-                vector[i] = input.getFloat(i*4);
-             }
-            DecimalFormat df = new DecimalFormat("0", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
-            df.setMaximumFractionDigits(5);
-
-            String result =
-            Arrays.asList(vector).stream().map(f -> df.format(f))
-                    .collect(Collectors.toList()).toString();
-            System.out.println("Decoded Vector: " + result);
+            System.out.println(c.element().toString());
             c.output(c.element().toString());
         }
     }

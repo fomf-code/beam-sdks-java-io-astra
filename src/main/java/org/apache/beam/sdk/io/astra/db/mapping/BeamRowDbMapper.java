@@ -23,10 +23,10 @@ package org.apache.beam.sdk.io.astra.db.mapping;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.data.CqlVector;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
-import com.datastax.oss.driver.api.core.type.CqlVectorType;
 import com.datastax.oss.driver.api.core.type.CustomType;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.ListType;
@@ -34,6 +34,7 @@ import com.datastax.oss.driver.api.core.type.MapType;
 import com.datastax.oss.driver.api.core.type.SetType;
 import com.datastax.oss.driver.api.core.type.TupleType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
+import com.datastax.oss.driver.api.core.type.VectorType;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.schemas.Schema.Field;
@@ -136,7 +137,6 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
     public Row mapRow(com.datastax.oss.driver.api.core.cql.Row cassandraRow) {
         List<Object> values = new ArrayList<>();
         for (int i = 0; i < columnDefinitions.size(); i++) {
-            // Mapping Field to Field
             DataType cassandraColumnType = columnDefinitions.get(i).getType();
             Object columnValue = toBeamRowValue(cassandraRow.getObject(i), cassandraColumnType);
             values.add(columnValue);
@@ -168,6 +168,7 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
      * @param type The Cassandra Data Type
      * @return the beam compatible object.
      */
+    @SuppressWarnings("unchecked")
     private Object toBeamRowValue(Object object, DataType type) {
         if (type instanceof ListType) {
             // Process LISTS
@@ -194,12 +195,18 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
             // Apply toBeamObject on both key and value.
             return map.stream().collect(
                     Collectors.toMap(e -> toBeamObject(e.getKey(), kType), e -> toBeamObject(e.getValue(), vType)));
+        } else if (type instanceof VectorType) {
+            // Process VECTOR
+            VectorType vectorType   = (VectorType) type;
+            DataType vectorCoordinateType = vectorType.getElementType();
+            CqlVector<?> list = (CqlVector<?>) object;
+            return list.stream()
+                    .map(value -> toBeamObject(value, vectorCoordinateType))
+                    .collect(Collectors.toList());
         } else if (type instanceof TupleType) {
             throw new IllegalArgumentException("As of today there is no support of Tuple in Beam");
         } else if (type instanceof UserDefinedType) {
             throw new IllegalArgumentException("As of today there is no support of Custom Format in Beam");
-        } else if (type instanceof CqlVectorType) {
-
         }
         return toBeamObject(object, type);
     }
@@ -267,10 +274,11 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
             case ProtocolConstants.DataType.BOOLEAN:
                 return FieldType.BOOLEAN;
             case ProtocolConstants.DataType.CUSTOM:
-                CustomType ct = (CustomType) type;
-                if (type instanceof CqlVectorType) {
-                    return FieldType.BYTES;
+                if (type instanceof VectorType) {
+                    VectorType vt = (VectorType) type;
+                    return FieldType.iterable(toBeamRowType(vt.getElementType()));
                 }
+                // Break if no vector we want an error
             default:
                 throw new IllegalArgumentException("Cannot Map Cassandra Type " + type.getProtocolCode() + " to Beam Type");
         }
