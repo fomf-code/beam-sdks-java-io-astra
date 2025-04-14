@@ -27,14 +27,7 @@ import com.datastax.oss.driver.api.core.data.CqlVector;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
-import com.datastax.oss.driver.api.core.type.CustomType;
-import com.datastax.oss.driver.api.core.type.DataType;
-import com.datastax.oss.driver.api.core.type.ListType;
-import com.datastax.oss.driver.api.core.type.MapType;
-import com.datastax.oss.driver.api.core.type.SetType;
-import com.datastax.oss.driver.api.core.type.TupleType;
-import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.VectorType;
+import com.datastax.oss.driver.api.core.type.*;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.schemas.Schema.Field;
@@ -195,14 +188,6 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
             // Apply toBeamObject on both key and value.
             return map.stream().collect(
                     Collectors.toMap(e -> toBeamObject(e.getKey(), kType), e -> toBeamObject(e.getValue(), vType)));
-        } else if (type instanceof VectorType) {
-            // Process VECTOR
-            VectorType vectorType   = (VectorType) type;
-            DataType vectorCoordinateType = vectorType.getElementType();
-            CqlVector<?> list = (CqlVector<?>) object;
-            return list.stream()
-                    .map(value -> toBeamObject(value, vectorCoordinateType))
-                    .collect(Collectors.toList());
         } else if (type instanceof TupleType) {
             throw new IllegalArgumentException("As of today there is no support of Tuple in Beam");
         } else if (type instanceof UserDefinedType) {
@@ -274,9 +259,9 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
             case ProtocolConstants.DataType.BOOLEAN:
                 return FieldType.BOOLEAN;
             case ProtocolConstants.DataType.CUSTOM:
-                if (type instanceof VectorType) {
-                    VectorType vt = (VectorType) type;
-                    return FieldType.iterable(toBeamRowType(vt.getElementType()));
+                CustomType ct = (CustomType) type;
+                if (type instanceof CqlVectorType) {
+                    return FieldType.BYTES;
                 }
                 // Break if no vector we want an error
             default:

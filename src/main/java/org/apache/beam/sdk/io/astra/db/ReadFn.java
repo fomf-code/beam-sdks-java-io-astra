@@ -52,7 +52,7 @@ import org.apache.beam.sdk.io.astra.db.AstraDbIO.Read;
 import org.apache.beam.sdk.io.astra.db.mapping.AstraDbMapper;
 import org.apache.beam.sdk.io.astra.db.transforms.split.RingRange;
 import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.base.Joiner;
+import org.apache.beam.vendor.guava.v26_0_jre.com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,7 +156,7 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
         (spec.query() == null)
             ? buildInitialQuery(spec, true) + highestClause
             : spec.query() + " AND " + highestClause;
-    return finalHighQuery;
+    return finalHighQuery + " ALLOW FILTERING";
   }
 
   private static String getLowestSplitQuery(Read<?> spec, String partitionKey, BigInteger lowest) {
@@ -165,7 +165,7 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
         (spec.query() == null)
             ? buildInitialQuery(spec, true) + lowestClause
             : spec.query() + " AND " + lowestClause;
-    return finalLowQuery;
+    return finalLowQuery + " ALLOW FILTERING";
   }
 
   private static String generateRangeQuery(Read<?> spec, String partitionKey, Boolean hasRingRange) {
@@ -177,7 +177,7 @@ class ReadFn<T> extends DoFn<Read<T>, T> {
                     String.format("(token(%s) >= ?)", partitionKey),
                     String.format("(token(%s) < ?)", partitionKey))
             : "";
-    final String combinedQuery = buildInitialQuery(spec, hasRingRange) + rangeFilter;
+    final String combinedQuery = buildInitialQuery(spec, hasRingRange) + rangeFilter + " ALLOW FILTERING";
     return combinedQuery;
   }
 
