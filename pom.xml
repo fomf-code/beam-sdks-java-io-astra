@@ -6,7 +6,7 @@
   <description>Apache Beam SDK to work with Astra Pipelines</description>
   <name>Beam SDK for Astra</name>
   <packaging>jar</packaging>
-  <version>4.18.5-SNAPSHOT-FOMF</version>
+  <version>4.18.11-SNAPSHOT-FOMF</version>
   <url>https://github.com/clun/beam-sdks-java-io-astra</url>
 
   <properties>

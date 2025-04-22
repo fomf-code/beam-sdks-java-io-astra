@@ -263,9 +263,11 @@ public class BeamRowDbMapper implements AstraDbMapper<Row>, Serializable {
                 if (type instanceof CqlVectorType) {
                     return FieldType.BYTES;
                 }
-                // Break if no vector we want an error
+            case ProtocolConstants.DataType.LIST:
+            case ProtocolConstants.DataType.SET:
+                return FieldType.array(FieldType.STRING);
             default:
-                throw new IllegalArgumentException("Cannot Map Cassandra Type " + type.getProtocolCode() + " to Beam Type");
+                throw new IllegalArgumentException("Cannot Map Cassandra Type "  + type.getProtocolCode() + " to Beam Type");
         }
     }
 
